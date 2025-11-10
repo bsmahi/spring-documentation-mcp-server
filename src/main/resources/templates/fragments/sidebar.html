@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+    <div th:fragment="sidebar" class="position-sticky pt-3">
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/dashboard}" th:classappend="${activePage == 'dashboard'} ? 'active' : ''">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/spring-boot}" th:classappend="${activePage == 'spring-boot'} ? 'active' : ''">
+                    <i class="bi bi-rocket-takeoff"></i> Spring Boot
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/projects}" th:classappend="${activePage == 'projects'} ? 'active' : ''">
+                    <i class="bi bi-folder"></i> Projects
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/versions}" th:classappend="${activePage == 'versions'} ? 'active' : ''">
+                    <i class="bi bi-tags"></i> Versions
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/documentation}" th:classappend="${activePage == 'documentation'} ? 'active' : ''">
+                    <i class="bi bi-book"></i> Documentation
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/examples}" th:classappend="${activePage == 'examples'} ? 'active' : ''">
+                    <i class="bi bi-code-square"></i> Code Examples
+                </a>
+            </li>
+
+            <hr class="my-3">
+
+            <!-- Admin Only -->
+            <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                <a class="nav-link" th:href="@{/users}" th:classappend="${activePage == 'users'} ? 'active' : ''">
+                    <i class="bi bi-people"></i> Users
+                </a>
+            </li>
+            <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                <a class="nav-link" th:href="@{/settings}" th:classappend="${activePage == 'settings'} ? 'active' : ''">
+                    <i class="bi bi-gear"></i> Settings
+                </a>
+            </li>
+        </ul>
+    </div>
+</body>
+</html>

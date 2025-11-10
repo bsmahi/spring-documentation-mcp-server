@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/main}">
+<head>
+    <title>Settings - Spring MCP Server</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <h1 class="mb-4">
+        <i class="bi bi-gear-fill text-spring-green"></i> Settings
+    </h1>
+
+    <!-- MCP Server Settings -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white border-bottom">
+            <h5 class="mb-0">
+                <i class="bi bi-server"></i> MCP Server Configuration
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label text-muted">Server Status</label>
+                    <div>
+                        <span class="badge bg-success">
+                            <i class="bi bi-check-circle"></i> <span th:text="${mcpServerStatus}">Running</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label text-muted">Server Port</label>
+                    <div>
+                        <code th:text="${mcpServerPort}">8080</code>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label text-muted">Database Status</label>
+                    <div>
+                        <span class="badge bg-success">
+                            <i class="bi bi-check-circle"></i> <span th:text="${databaseStatus}">Connected</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label text-muted">MCP Endpoint</label>
+                    <div>
+                        <code>/mcp/sse</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Settings -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white border-bottom">
+            <h5 class="mb-0">
+                <i class="bi bi-sliders"></i> Application Settings
+            </h5>
+        </div>
+        <div class="card-body">
+            <!-- Success/Error Messages -->
+            <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle"></i> <span th:text="${success}">Settings saved</span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle"></i> <span th:text="${error}">Error occurred</span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+
+            <!-- Enterprise Subscription Form -->
+            <form th:action="@{/settings}" method="post" id="settingsForm">
+                <div class="mb-4">
+                    <h6 class="mb-3">
+                        <i class="bi bi-building"></i> Support Subscription
+                    </h6>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox"
+                               id="enterpriseSubscriptionEnabled"
+                               name="enterpriseSubscriptionEnabled"
+                               th:checked="${settings.enterpriseSubscriptionEnabled}"
+                               onchange="document.getElementById('settingsForm').submit()">
+                        <label class="form-check-label" for="enterpriseSubscriptionEnabled">
+                            <strong>Enterprise Support Subscription Enabled</strong>
+                        </label>
+                    </div>
+                    <small class="form-text text-muted d-block mt-2">
+                        <i class="bi bi-info-circle"></i>
+                        When enabled, version support status will be determined by Enterprise Support End dates.
+                        When disabled, OSS Support End dates will be used instead.
+                        <strong>Settings are saved automatically when you toggle.</strong>
+                    </small>
+                </div>
+
+                <div class="mb-3">
+                    <h6 class="mb-2">Current Status</h6>
+                    <div>
+                        <span th:if="${settings.enterpriseSubscriptionEnabled}" class="badge bg-success">
+                            <i class="bi bi-building-check"></i> Enterprise Support Active
+                        </span>
+                        <span th:unless="${settings.enterpriseSubscriptionEnabled}" class="badge bg-primary">
+                            <i class="bi bi-code-square"></i> OSS Support Only
+                        </span>
+                    </div>
+                </div>
+            </form>
+
+            <hr class="my-4">
+
+            <div class="alert alert-info mb-0">
+                <i class="bi bi-lightbulb"></i>
+                <strong>Additional Settings:</strong> More configuration options will be available in future updates,
+                including documentation sync schedules, MCP server parameters, and user preferences.
+            </div>
+        </div>
+    </div>
+
+    <!-- System Information -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom">
+            <h5 class="mb-0">
+                <i class="bi bi-info-square"></i> System Information
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label text-muted">Application Version</label>
+                    <div>
+                        <code>1.0.0</code>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label text-muted">Spring Boot Version</label>
+                    <div>
+                        <code>3.5.7</code>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label text-muted">Java Version</label>
+                    <div>
+                        <code>25</code>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label text-muted">Database</label>
+                    <div>
+                        <code>PostgreSQL 18</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

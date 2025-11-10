@@ -1,0 +1,114 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.5.7'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.spring.mcp'
+version = '1.0.0'
+
+java {
+    // Allow running on Java 25+
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url 'https://repo.spring.io/milestone' }
+    maven { url 'https://repo.spring.io/snapshot' }
+}
+
+ext {
+    springAiVersion = '1.0.3'
+}
+
+dependencies {
+    // Spring Boot Starters
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    implementation 'nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect:3.3.0'
+    implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    // Database
+    runtimeOnly 'org.postgresql:postgresql'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-database-postgresql'
+    // Note: Using Hibernate 6.6 native PostgreSQL JSON and Array support instead of hypersistence-utils
+
+    // Spring AI MCP Server with SSE
+    implementation "org.springframework.ai:spring-ai-starter-mcp-server-webmvc:${springAiVersion}"
+
+    // HTML Parsing for documentation fetching
+    implementation 'org.jsoup:jsoup:1.21.2'
+
+    // HtmlUnit for JavaScript-enabled web scraping
+    implementation 'org.htmlunit:htmlunit:4.18.0'
+
+    // HTML to Markdown conversion
+    implementation 'com.vladsch.flexmark:flexmark-html2md-converter:0.64.8'
+    implementation 'com.vladsch.flexmark:flexmark:0.64.8'
+
+    // JSON Processing
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
+    // HTTP Client for documentation fetching
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+    // Utilities
+    implementation 'org.apache.commons:commons-lang3'
+    implementation 'com.google.guava:guava:33.0.0-jre'
+
+    // Lombok for reducing boilerplate
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // Development
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    // Testing
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.testcontainers:postgresql'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.ai:spring-ai-bom:${springAiVersion}"
+    }
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+// Ensure proper character encoding
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+// Suppress sun.misc.Unsafe deprecation warnings from Netty on Java 24+
+// See: https://netty.io/wiki/java-24-and-sun.misc.unsafe.html
+tasks.named('bootRun') {
+    jvmArgs = ['--sun-misc-unsafe-memory-access=allow']
+}
+
+// Temporary task to print runtime classpath for HtmlUnit test
+task printRuntimeClasspath {
+    doLast {
+        println sourceSets.main.runtimeClasspath.asPath
+    }
+}

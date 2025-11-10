@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/main}">
+<head>
+    <title>Spring Projects - Spring MCP Server</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="bi bi-folder2-open text-spring-green"></i>
+            Spring Projects
+        </h1>
+        <div class="text-muted small">
+            <i class="bi bi-info-circle"></i> Read-only view
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" action="/projects" class="row g-3 align-items-end">
+                        <div class="col-auto">
+                            <label for="springBootVersionFilter" class="form-label fw-semibold">
+                                <i class="bi bi-funnel text-spring-green"></i> Filter by Spring Boot Version
+                            </label>
+                            <select id="springBootVersionFilter"
+                                    name="springBootVersionId"
+                                    class="form-select"
+                                    onchange="this.form.submit()">
+                                <option value="" th:selected="${selectedSpringBootVersionId == null}">
+                                    ALL (Show all projects)
+                                </option>
+                                <option th:each="sbv : ${springBootVersions}"
+                                        th:value="${sbv.id}"
+                                        th:text="${'Spring Boot ' + sbv.version}"
+                                        th:selected="${sbv.id == selectedSpringBootVersionId}">
+                                    Spring Boot 3.5.7
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-auto">
+                            <label for="textFilter" class="form-label fw-semibold">
+                                <i class="bi bi-search text-spring-green"></i> Search Projects
+                            </label>
+                            <div class="input-group" style="width: 300px;">
+                                <input type="text"
+                                       id="textFilter"
+                                       class="form-control"
+                                       placeholder="Search by name, slug, version..."
+                                       autocomplete="off">
+                                <button type="button"
+                                        id="clearFilter"
+                                        class="btn btn-outline-secondary"
+                                        style="display: none;"
+                                        title="Clear filter">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-auto" th:if="${selectedSpringBootVersion != null}">
+                            <small class="text-muted">
+                                Showing projects compatible with
+                                <span class="badge bg-spring-green" th:text="${'Spring Boot ' + selectedSpringBootVersion.version}">Spring Boot 3.5.7</span>
+                            </small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty State -->
+    <div th:if="${#lists.isEmpty(projects)}" class="text-center py-5">
+        <div class="mb-4">
+            <i class="bi bi-folder-x display-1 text-muted"></i>
+        </div>
+        <h3 class="text-muted mb-3">No Projects Found</h3>
+        <p class="text-muted mb-4" th:if="${selectedSpringBootVersion != null}">
+            No projects found compatible with
+            <span class="badge bg-spring-green" th:text="${'Spring Boot ' + selectedSpringBootVersion.version}">Spring Boot 3.5.7</span>
+        </p>
+        <p class="text-muted mb-4" th:unless="${selectedSpringBootVersion != null}">
+            Projects will appear here after synchronization.
+        </p>
+    </div>
+
+    <!-- Projects List -->
+    <div th:if="${!#lists.isEmpty(projects)}">
+        <!-- Mobile View (Cards) -->
+        <div class="d-md-none">
+            <div class="card mb-3" th:each="project : ${projects}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-box-seam text-spring-green"></i>
+                            <span th:text="${project.name}">Project Name</span>
+                        </h5>
+                    </div>
+
+                    <p class="card-text text-muted small mb-2">
+                        <code th:text="${project.slug}">project-slug</code>
+                    </p>
+
+                    <p class="card-text mb-3" th:if="${project.description}">
+                        <span th:text="${#strings.abbreviate(project.description, 100)}">Project description...</span>
+                    </p>
+
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a th:href="@{/projects/{id}(id=${project.id}, springBootVersionId=${selectedSpringBootVersionId})}"
+                           class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i> View Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desktop View (Table) -->
+        <div class="d-none d-md-block">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col" style="width: 5%;">
+                                        <i class="bi bi-box-seam text-spring-green"></i>
+                                    </th>
+                                    <th scope="col" style="width: 25%;">Name</th>
+                                    <th scope="col" style="width: 15%;">Slug</th>
+                                    <th scope="col" style="width: 45%;">Description</th>
+                                    <th scope="col" style="width: 10%;" class="text-center">Versions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="project : ${projects}">
+                                    <td class="align-middle">
+                                        <div class="project-icon bg-spring-green-light text-spring-green rounded-circle d-flex align-items-center justify-content-center"
+                                             style="width: 40px; height: 40px;">
+                                            <i class="bi bi-box-seam fs-5"></i>
+                                        </div>
+                                    </td>
+                                    <td class="align-middle">
+                                        <a th:href="@{/projects/{id}(id=${project.id}, springBootVersionId=${selectedSpringBootVersionId})}"
+                                           class="text-decoration-none fw-semibold"
+                                           th:text="${project.name}">
+                                            Spring Boot
+                                        </a>
+                                    </td>
+                                    <td class="align-middle">
+                                        <code th:text="${project.slug}">spring-boot</code>
+                                    </td>
+                                    <td class="align-middle">
+                                        <span th:text="${#strings.abbreviate(project.description, 80)}"
+                                              th:title="${project.description}">
+                                            Project description goes here...
+                                        </span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <!-- Show filtered versions if Spring Boot version is selected, otherwise show all visible versions -->
+                                        <th:block th:if="${projectVersionsMap != null}">
+                                            <span th:if="${!#lists.isEmpty(projectVersionsMap[project.id])}"
+                                                  th:each="version : ${projectVersionsMap[project.id]}"
+                                                  class="badge bg-secondary"
+                                                  th:text="${version.getVersion()}">0</span>
+                                            <span th:if="${#lists.isEmpty(projectVersionsMap[project.id])}"
+                                                  class="text-muted small">No compatible versions</span>
+                                        </th:block>
+                                        <th:block th:if="${projectVersionsMap == null}">
+                                            <span th:if="${!#lists.isEmpty(project.getVisibleVersions())}"
+                                                  th:each="version : ${project.getVisibleVersions()}"
+                                                  class="badge bg-secondary"
+                                                  th:text="${version.getVersion()}">0</span>
+                                        </th:block>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Projects Summary -->
+            <div class="mt-3 text-muted">
+                <small>
+                    Showing <span id="projectCount" th:text="${#lists.size(projects)}">0</span> project(s)
+                    <th:block th:if="${selectedSpringBootVersion != null}">
+                        compatible with <span class="badge bg-spring-green" th:text="${'Spring Boot ' + selectedSpringBootVersion.version}">Spring Boot 3.5.7</span>
+                    </th:block>
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page-specific Styles -->
+    <style>
+        .project-row-hidden {
+            display: none !important;
+        }
+
+        .project-card-hidden {
+            display: none !important;
+        }
+    </style>
+
+    <!-- Page-specific JavaScript -->
+    <script th:src="@{/js/projects-filter.js}"></script>
+</div>
+</body>
+</html>

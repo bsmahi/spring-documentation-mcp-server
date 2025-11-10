@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}">
+<head>
+    <title>Synchronize Projects & Versions - Spring MCP Server</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="bi bi-arrow-repeat text-spring-green"></i>
+            Synchronize Projects & Versions
+        </h1>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill"></i>
+        <span th:text="${success}">Success message</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span th:text="${error}">Error message</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <!-- Introduction -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info" role="alert">
+                <i class="bi bi-info-circle-fill"></i>
+                <strong>About Synchronization:</strong> Use the sync features below to fetch the latest Spring projects
+                and versions from external sources like Spring Initializr and spring.io. This ensures your MCP server
+                has up-to-date information.
+            </div>
+        </div>
+    </div>
+
+    <!-- Comprehensive Sync Card (Featured) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-lg border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-stars"></i>
+                        Comprehensive Sync (Recommended)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text lead">
+                        Synchronize <strong>ALL</strong> Spring projects, versions, and documentation from all available sources.
+                        This is the complete sync that populates all data including:
+                    </p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul>
+                                <li><strong>Spring Boot versions</strong> (spring_boot_versions table)</li>
+                                <li><strong>Spring Generations</strong> (16+ Boot versions, 110+ projects)</li>
+                                <li><strong>Spring Initializr</strong> (additional Boot versions)</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul>
+                                <li><strong>Project relationships</strong> (parent/child hierarchies)</li>
+                                <li><strong>Documentation content</strong> (OVERVIEW from spring.io)</li>
+                                <li><strong>Version metadata</strong> (support dates, doc links)</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="alert alert-info mb-3" role="alert">
+                        <i class="bi bi-lightbulb-fill"></i>
+                        <strong>Note:</strong> This sync runs all phases sequentially:
+                        <ol class="mb-0 mt-2">
+                            <li>Phase 0: Spring Boot versions (PRIMARY)</li>
+                            <li>Phase 1: Spring Generations API</li>
+                            <li>Phase 2: Spring Initializr API</li>
+                            <li>Phase 3: Crawl project pages for documentation</li>
+                            <li>Phase 4: Sync project relationships</li>
+                            <li>Phase 5: Sync documentation content (Markdown conversion)</li>
+                        </ol>
+                    </div>
+
+                    <form method="post" th:action="@{/sync/all}" class="mb-0">
+                        <button type="submit" class="btn btn-success btn-lg w-100">
+                            <i class="bi bi-stars"></i>
+                            Start Comprehensive Sync
+                        </button>
+                    </form>
+                </div>
+                <div class="card-footer bg-light">
+                    <small class="text-muted">
+                        <i class="bi bi-clock"></i>
+                        May take 1-2 minutes to complete all phases
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sync Cards -->
+    <div class="row g-4">
+        <!-- Spring Boot Sync Card -->
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-spring-green text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-box"></i>
+                        Spring Boot
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Synchronize Spring Boot versions from the Spring Initializr API. This will fetch:
+                    </p>
+                    <ul>
+                        <li>Latest stable releases</li>
+                        <li>Release candidates (RC)</li>
+                        <li>Development snapshots</li>
+                        <li>Milestone versions</li>
+                    </ul>
+                    <p class="text-muted small mb-3">
+                        <i class="bi bi-info-circle"></i>
+                        Source: <a href="https://start.spring.io" target="_blank" rel="noopener noreferrer">start.spring.io</a>
+                    </p>
+
+                    <form method="post" th:action="@{/sync/spring-boot}" class="mb-0">
+                        <button type="submit" class="btn btn-spring-green w-100">
+                            <i class="bi bi-arrow-repeat"></i>
+                            Sync Spring Boot
+                        </button>
+                    </form>
+                </div>
+                <div class="card-footer bg-light">
+                    <small class="text-muted">
+                        <i class="bi bi-clock"></i>
+                        Typically takes 5-10 seconds
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- All Spring Generations Sync Card -->
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-spring-green text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-collection"></i>
+                        All Spring Generations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Synchronize all Spring projects and versions from Spring Generations API. This will fetch:
+                    </p>
+                    <ul>
+                        <li>16+ Spring Boot versions (1.5.x - 4.0.x)</li>
+                        <li>110+ Spring projects per Boot version</li>
+                        <li>Spring Data release trains</li>
+                        <li>Spring Cloud release trains</li>
+                        <li>All compatible version mappings</li>
+                    </ul>
+                    <p class="text-muted small mb-3">
+                        <i class="bi bi-info-circle"></i>
+                        Source: <a href="https://spring.io/projects/generations" target="_blank" rel="noopener noreferrer">spring.io/projects/generations</a>
+                    </p>
+
+                    <form method="post" th:action="@{/sync/generations}" class="mb-0">
+                        <button type="submit" class="btn btn-spring-green w-100">
+                            <i class="bi bi-arrow-repeat"></i>
+                            Sync All Generations
+                        </button>
+                    </form>
+                </div>
+                <div class="card-footer bg-light">
+                    <small class="text-muted">
+                        <i class="bi bi-clock"></i>
+                        May take 30-60 seconds
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Spring Data Sync Card (Coming Soon) -->
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-database"></i>
+                        Spring Data
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Synchronize Spring Data projects (JPA, MongoDB, Redis, etc.). This will fetch:
+                    </p>
+                    <ul>
+                        <li>All Spring Data sub-projects</li>
+                        <li>Version information</li>
+                        <li>Documentation links</li>
+                        <li>Code examples</li>
+                    </ul>
+                    <p class="text-muted small mb-3">
+                        <i class="bi bi-info-circle"></i>
+                        Source: <a href="https://spring.io/projects/spring-data" target="_blank" rel="noopener noreferrer">spring.io</a>
+                    </p>
+
+                    <button type="button" class="btn btn-secondary w-100" disabled>
+                        <i class="bi bi-hourglass-split"></i>
+                        Coming Soon
+                    </button>
+                </div>
+                <div class="card-footer bg-light">
+                    <small class="text-muted">
+                        <i class="bi bi-wrench"></i>
+                        Under development
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Spring Security Sync Card (Coming Soon) -->
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-shield-lock"></i>
+                        Spring Security
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Synchronize Spring Security versions and documentation. This will fetch:
+                    </p>
+                    <ul>
+                        <li>Security versions</li>
+                        <li>OAuth2 documentation</li>
+                        <li>Authentication guides</li>
+                        <li>Security samples</li>
+                    </ul>
+                    <p class="text-muted small mb-3">
+                        <i class="bi bi-info-circle"></i>
+                        Source: <a href="https://spring.io/projects/spring-security" target="_blank" rel="noopener noreferrer">spring.io</a>
+                    </p>
+
+                    <button type="button" class="btn btn-secondary w-100" disabled>
+                        <i class="bi bi-hourglass-split"></i>
+                        Coming Soon
+                    </button>
+                </div>
+                <div class="card-footer bg-light">
+                    <small class="text-muted">
+                        <i class="bi bi-wrench"></i>
+                        Under development
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sync Guide -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-book text-spring-green"></i>
+                        Sync Guide
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h6>How Synchronization Works</h6>
+                    <ol>
+                        <li><strong>Data Fetching:</strong> The system connects to external APIs (like Spring Initializr) to fetch the latest project and version information.</li>
+                        <li><strong>Version Parsing:</strong> Version strings are parsed to extract major, minor, and patch numbers, along with type indicators (STABLE, RC, SNAPSHOT, MILESTONE).</li>
+                        <li><strong>Database Update:</strong> New projects and versions are created in the database. Existing entries are not duplicated.</li>
+                        <li><strong>Default Marking:</strong> The latest stable version is marked as the default/latest for each project.</li>
+                    </ol>
+
+                    <h6 class="mt-4">Best Practices</h6>
+                    <ul>
+                        <li><strong>Initial Sync:</strong> Run sync manually after first installation to populate the database.</li>
+                        <li><strong>Regular Updates:</strong> Sync periodically (weekly or monthly) to stay current with new releases.</li>
+                        <li><strong>Check Results:</strong> Review success/error messages after each sync to ensure data integrity.</li>
+                        <li><strong>Scheduled Sync:</strong> Consider enabling scheduled automatic synchronization (coming in Phase 8).</li>
+                    </ul>
+
+                    <h6 class="mt-4">Troubleshooting</h6>
+                    <div class="alert alert-warning" role="alert">
+                        <strong>Common Issues:</strong>
+                        <ul class="mb-0">
+                            <li><strong>Network Errors:</strong> Ensure the server has internet access to reach external APIs.</li>
+                            <li><strong>API Changes:</strong> External APIs may change structure; check logs for parsing errors.</li>
+                            <li><strong>Duplicate Entries:</strong> The system prevents duplicates, but check database constraints are in place.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Styles -->
+<th:block layout:fragment="scripts">
+    <style>
+        .bg-spring-green {
+            background-color: #6db33f;
+        }
+
+        .text-spring-green {
+            color: #6db33f;
+        }
+
+        .btn-spring-green {
+            background-color: #6db33f;
+            border-color: #6db33f;
+            color: white;
+        }
+
+        .btn-spring-green:hover {
+            background-color: #5a9a35;
+            border-color: #5a9a35;
+            color: white;
+        }
+
+        .card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+        }
+    </style>
+</th:block>
+</body>
+</html>

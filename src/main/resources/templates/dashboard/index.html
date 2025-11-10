@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}">
+<head>
+    <title>Dashboard - Spring MCP Server</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <!-- Welcome Banner -->
+        <div class="welcome-banner mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h2 mb-1">
+                        <i class="bi bi-speedometer2 text-spring"></i>
+                        Welcome back, <span sec:authentication="name">User</span>!
+                    </h1>
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-calendar3"></i>
+                        <span th:text="${#temporals.format(#temporals.createNow(), 'EEEE, MMMM dd, yyyy')}">
+                            Monday, January 01, 2025
+                        </span>
+                    </p>
+                </div>
+                <div class="mcp-status" x-data="{ status: 'running' }">
+                    <div class="d-flex align-items-center">
+                        <div class="status-indicator me-2">
+                            <span class="status-dot status-running"></span>
+                        </div>
+                        <div>
+                            <div class="small text-muted">MCP Server Status</div>
+                            <div class="fw-bold text-success">
+                                <i class="bi bi-lightning-charge-fill"></i> Running
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row g-4 mb-4">
+
+            <!-- Spring Boot Card -->
+            <div class="col-xl-4 col-md-4 col-sm-4">
+                <div class="stat-card card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="stat-icon bg-spring-light">
+                                <i class="bi bi-rocket text-spring"></i>
+                            </div>
+                            <span class="badge bg-spring-light text-spring">Versions</span>
+                        </div>
+                        <h3 class="stat-number mb-1" th:text="${springBootCount}">0</h3>
+                        <p class="stat-label text-muted mb-2">Spring Boot</p>
+                        <div class="stat-footer">
+                            <span class="text-success small">
+                                <i class="bi bi-check-circle"></i>
+                                <span th:text="${springBootCount}">0</span> active
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Projects Card -->
+            <div class="col-xl-4 col-md-4 col-sm-4">
+                <div class="stat-card card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="stat-icon bg-spring-light">
+                                <i class="bi bi-folder-fill text-spring"></i>
+                            </div>
+                            <span class="badge bg-spring-light text-spring">Active</span>
+                        </div>
+                        <h3 class="stat-number mb-1" th:text="${projectCount}">0</h3>
+                        <p class="stat-label text-muted mb-2">Spring Projects</p>
+                        <div class="stat-footer">
+                            <span class="text-success small">
+                                <i class="bi bi-check-circle"></i>
+                                <span th:text="${activeProjectCount}">0</span> active (<span th:text="${activePercentage}">0</span>%)
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Versions Card -->
+            <div class="col-xl-4 col-md-4 col-sm-4">
+                <div class="stat-card card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="stat-icon bg-info-light">
+                                <i class="bi bi-tags-fill text-info"></i>
+                            </div>
+                            <span class="badge bg-info-light text-info">Tracked</span>
+                        </div>
+                        <h3 class="stat-number mb-1" th:text="${versionCount}">0</h3>
+                        <p class="stat-label text-muted mb-2">Project Versions</p>
+                        <div class="stat-footer">
+                            <span class="text-info small">
+                                <i class="bi bi-clock-history"></i>
+                                All versions tracked
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+
+        </div>
+
+        <!-- Docs & Examples Statistics Row -->
+        <div class="row g-4 mb-4">
+
+            <!-- Documentation Card -->
+            <div class="col-xl-6 col-md-6">
+                <div class="stat-card card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="stat-icon bg-primary-light">
+                                <i class="bi bi-book-fill text-primary"></i>
+                            </div>
+                            <span class="badge bg-primary-light text-primary">Links</span>
+                        </div>
+                        <h3 class="stat-number mb-1" th:text="${documentationLinkCount}">0</h3>
+                        <p class="stat-label text-muted mb-2">Documentation</p>
+                        <div class="stat-footer">
+                            <span class="text-primary small">
+                                <i class="bi bi-link-45deg"></i>
+                                Links indexed
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Code Examples Card -->
+            <div class="col-xl-6 col-md-6">
+                <div class="stat-card card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="stat-icon bg-success-light">
+                                <i class="bi bi-code-square text-success"></i>
+                            </div>
+                            <span class="badge bg-success-light text-success">Library</span>
+                        </div>
+                        <h3 class="stat-number mb-1" th:text="${codeExampleCount}">0</h3>
+                        <p class="stat-label text-muted mb-2">Code Examples</p>
+                        <div class="stat-footer">
+                            <span class="text-success small">
+                                <i class="bi bi-collection"></i>
+                                Samples available
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Secondary Statistics Row -->
+        <div class="row g-4 mb-4">
+            <!-- Users Card -->
+            <div class="col-xl-4 col-md-6">
+                <div class="stat-card card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="stat-icon bg-warning-light">
+                                <i class="bi bi-people-fill text-warning"></i>
+                            </div>
+                            <span class="badge bg-warning-light text-warning">System</span>
+                        </div>
+                        <h3 class="stat-number mb-1" th:text="${userCount}">0</h3>
+                        <p class="stat-label text-muted mb-2">System Users</p>
+                        <div class="stat-footer">
+                            <span class="text-warning small">
+                                <i class="bi bi-person-check"></i>
+                                Active users
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Projects Card -->
+            <div class="col-xl-4 col-md-6">
+                <div class="stat-card card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="stat-icon bg-danger-light">
+                                <i class="bi bi-file-earmark-plus text-danger"></i>
+                            </div>
+                            <span class="badge bg-danger-light text-danger">Recent</span>
+                        </div>
+                        <h3 class="stat-number mb-1" th:text="${#lists.size(recentProjects)}">0</h3>
+                        <p class="stat-label text-muted mb-2">Recent Projects</p>
+                        <div class="stat-footer">
+                            <span class="text-danger small">
+                                <i class="bi bi-clock"></i>
+                                Last 5 projects
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Documentation Card -->
+            <div class="col-xl-4 col-md-6">
+                <div class="stat-card card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="stat-icon bg-secondary" style="background-color: rgba(108, 117, 125, 0.1) !important;">
+                                <i class="bi bi-file-earmark-text text-secondary"></i>
+                            </div>
+                            <span class="badge" style="background-color: rgba(108, 117, 125, 0.1) !important; color: #6c757d;">Updated</span>
+                        </div>
+                        <h3 class="stat-number mb-1" th:text="${#lists.size(recentDocumentation)}">0</h3>
+                        <p class="stat-label text-muted mb-2">Recent Docs</p>
+                        <div class="stat-footer">
+                            <span class="text-secondary small">
+                                <i class="bi bi-clock"></i>
+                                Last 5 docs
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Row -->
+        <div class="row g-4">
+            <!-- Quick Actions -->
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white border-bottom">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-lightning-fill text-spring"></i> Quick Actions
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <!-- Bootstrap Project -->
+                            <div class="col-md-4">
+                                <a href="https://start.spring.io" target="_blank" rel="noopener noreferrer" class="action-card text-decoration-none">
+                                    <div class="action-card-inner">
+                                        <div class="action-icon bg-spring-light">
+                                            <i class="bi bi-rocket-takeoff text-spring"></i>
+                                        </div>
+                                        <h6 class="action-title">Bootstrap Project</h6>
+                                        <p class="action-desc">Initialize a new Spring project</p>
+                                    </div>
+                                </a>
+                            </div>
+
+                            <!-- Sync Projects -->
+                            <div class="col-md-4">
+                                <a th:href="@{/sync}" class="action-card text-decoration-none" sec:authorize="hasRole('ADMIN')">
+                                    <div class="action-card-inner">
+                                        <div class="action-icon bg-info-light">
+                                            <i class="bi bi-arrow-repeat text-info"></i>
+                                        </div>
+                                        <h6 class="action-title">Sync Projects</h6>
+                                        <p class="action-desc">Fetch Spring.io projects & versions</p>
+                                    </div>
+                                </a>
+                            </div>
+
+                            <!-- Server Settings -->
+                            <div class="col-md-4">
+                                <a th:href="@{/settings}" class="action-card text-decoration-none" sec:authorize="hasRole('ADMIN')">
+                                    <div class="action-card-inner">
+                                        <div class="action-icon bg-warning-light">
+                                            <i class="bi bi-gear-fill text-warning"></i>
+                                        </div>
+                                        <h6 class="action-title">Server Settings</h6>
+                                        <p class="action-desc">Configure MCP server</p>
+                                    </div>
+                                </a>
+                            </div>
+
+                            <!-- View Projects -->
+                            <div class="col-md-4">
+                                <a th:href="@{/projects}" class="action-card text-decoration-none">
+                                    <div class="action-card-inner">
+                                        <div class="action-icon bg-primary-light">
+                                            <i class="bi bi-folder2-open text-primary"></i>
+                                        </div>
+                                        <h6 class="action-title">Manage Projects</h6>
+                                        <p class="action-desc">View and manage Spring projects</p>
+                                    </div>
+                                </a>
+                            </div>
+
+                            <!-- Code Examples -->
+                            <div class="col-md-4">
+                                <a th:href="@{/examples}" class="action-card text-decoration-none">
+                                    <div class="action-card-inner">
+                                        <div class="action-icon bg-success-light">
+                                            <i class="bi bi-code-square text-success"></i>
+                                        </div>
+                                        <h6 class="action-title">Code Examples</h6>
+                                        <p class="action-desc">Browse code samples library</p>
+                                    </div>
+                                </a>
+                            </div>
+
+                            <!-- API Documentation -->
+                            <div class="col-md-4">
+                                <a th:href="@{/documentation}" class="action-card text-decoration-none">
+                                    <div class="action-card-inner">
+                                        <div class="action-icon bg-danger-light">
+                                            <i class="bi bi-file-text text-danger"></i>
+                                        </div>
+                                        <h6 class="action-title">Documentation</h6>
+                                        <p class="action-desc">View API documentation</p>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white border-bottom">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-clock-history text-spring"></i> Recent Activity
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="activity-list">
+                            <!-- Recent Projects -->
+                            <div class="activity-item" th:each="project : ${recentProjects}">
+                                <div class="activity-icon bg-spring-light">
+                                    <i class="bi bi-folder-plus text-spring"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-title">
+                                        <a th:href="@{/projects/{id}(id=${project.id})}" th:text="${project.name}" class="text-decoration-none">Project</a>
+                                    </div>
+                                    <div class="activity-time">
+                                        <span class="badge bg-light text-dark">Project</span>
+                                        <span th:text="${#temporals.format(project.createdAt, 'MMM dd, yyyy')}">Recently added</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Recent Versions -->
+                            <div class="activity-item" th:each="version : ${recentVersions}" th:if="${#lists.size(recentProjects) < 3}">
+                                <div class="activity-icon bg-info-light">
+                                    <i class="bi bi-tag text-info"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-title">
+                                        <a th:href="@{/versions/{id}(id=${version.id})}" th:text="${version.project.name + ' ' + version.version}" class="text-decoration-none">Version</a>
+                                    </div>
+                                    <div class="activity-time">
+                                        <span class="badge bg-light text-dark">Version</span>
+                                        <span th:text="${#temporals.format(version.createdAt, 'MMM dd, yyyy')}">Recently added</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Recent Documentation -->
+                            <div class="activity-item" th:each="doc : ${recentDocumentation}" th:if="${#lists.size(recentProjects) < 2 and #lists.size(recentVersions) < 2}">
+                                <div class="activity-icon bg-primary-light">
+                                    <i class="bi bi-file-earmark-plus text-primary"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-title">
+                                        <a th:href="@{/documentation/{id}(id=${doc.id})}" th:text="${doc.title}" class="text-decoration-none">Documentation</a>
+                                    </div>
+                                    <div class="activity-time">
+                                        <span class="badge bg-light text-dark">Doc</span>
+                                        <span th:text="${#temporals.format(doc.createdAt, 'MMM dd, yyyy')}">Recently added</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Empty State -->
+                            <div class="activity-item" th:if="${#lists.isEmpty(recentProjects) and #lists.isEmpty(recentVersions) and #lists.isEmpty(recentDocumentation)}">
+                                <div class="text-center py-4 text-muted">
+                                    <i class="bi bi-inbox display-6"></i>
+                                    <p class="mb-0 mt-2">No recent activity</p>
+                                    <p class="small mb-0">Start by adding projects or documentation</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light text-center">
+                        <a th:href="@{/projects}" class="text-decoration-none small">
+                            View all projects <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Getting Started Guide -->
+        <div class="row g-4 mt-2">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-start">
+                            <div class="flex-shrink-0">
+                                <div class="info-icon bg-spring-light">
+                                    <i class="bi bi-info-circle text-spring"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h5 class="card-title">
+                                    <i class="bi bi-rocket-takeoff-fill text-spring"></i>
+                                    Getting Started with Spring MCP Server
+                                </h5>
+                                <p class="text-muted mb-3">
+                                    The Spring MCP Server is now running and ready to serve Spring documentation
+                                    through the Model Context Protocol. Follow these steps to get started:
+                                </p>
+
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <div class="step-card">
+                                            <div class="step-number">1</div>
+                                            <h6 class="step-title">Configure Projects</h6>
+                                            <p class="step-desc">
+                                                Add Spring projects and their versions in the
+                                                <a th:href="@{/projects}" class="text-spring">Projects</a> section.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="step-card">
+                                            <div class="step-number">2</div>
+                                            <h6 class="step-title">Add Documentation</h6>
+                                            <p class="step-desc">
+                                                Import documentation links in the
+                                                <a th:href="@{/documentation}" class="text-spring">Documentation</a> section.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="step-card">
+                                            <div class="step-number">3</div>
+                                            <h6 class="step-title">Connect Claude</h6>
+                                            <p class="step-desc">
+                                                Connect Claude Code to the MCP endpoint at
+                                                <code class="text-spring">/mcp/sse</code>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-info mt-4 mb-0">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-plug-fill me-2 fs-5"></i>
+                                        <div class="flex-grow-1">
+                                            <strong>MCP Endpoint:</strong>
+                                            <code class="ms-2" th:text="${mcpEndpoint}">http://localhost:8080/mcp/sse</code>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-info" onclick="copyEndpoint()">
+                                            <i class="bi bi-clipboard"></i> Copy
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page-specific styles -->
+    <th:block layout:fragment="scripts">
+        <style>
+            :root {
+                --spring-green: #6db33f;
+                --spring-green-dark: #5a9c34;
+                --spring-green-light: rgba(109, 179, 63, 0.1);
+            }
+
+            .text-spring { color: var(--spring-green) !important; }
+            .bg-spring-light { background-color: var(--spring-green-light) !important; }
+            .bg-info-light { background-color: rgba(13, 202, 240, 0.1) !important; }
+            .bg-primary-light { background-color: rgba(13, 110, 253, 0.1) !important; }
+            .bg-warning-light { background-color: rgba(255, 193, 7, 0.1) !important; }
+            .bg-success-light { background-color: rgba(25, 135, 84, 0.1) !important; }
+            .bg-danger-light { background-color: rgba(220, 53, 69, 0.1) !important; }
+
+            .welcome-banner {
+                padding: 1.5rem 0;
+                border-bottom: 2px solid #f0f0f0;
+            }
+
+            .status-indicator {
+                display: flex;
+                align-items: center;
+            }
+
+            .status-dot {
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                display: inline-block;
+                animation: pulse 2s infinite;
+            }
+
+            .status-running {
+                background-color: #28a745;
+                box-shadow: 0 0 0 rgba(40, 167, 69, 0.4);
+            }
+
+            @keyframes pulse {
+                0%, 100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+                50% { box-shadow: 0 0 0 6px rgba(40, 167, 69, 0); }
+            }
+
+            .stat-card {
+                transition: all 0.3s ease;
+            }
+
+            .stat-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15) !important;
+            }
+
+            .stat-icon {
+                width: 48px;
+                height: 48px;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.5rem;
+            }
+
+            .stat-number {
+                font-size: 2.5rem;
+                font-weight: 700;
+                color: #2c3e50;
+                line-height: 1;
+            }
+
+            .stat-label {
+                font-size: 0.95rem;
+                font-weight: 500;
+            }
+
+            .stat-footer {
+                padding-top: 0.75rem;
+                border-top: 1px solid #f0f0f0;
+            }
+
+            .action-card {
+                display: block;
+                transition: all 0.3s ease;
+            }
+
+            .action-card-inner {
+                padding: 1.5rem;
+                border: 2px solid #f0f0f0;
+                border-radius: 12px;
+                text-align: center;
+                transition: all 0.3s ease;
+            }
+
+            .action-card:hover .action-card-inner {
+                border-color: var(--spring-green);
+                background-color: var(--spring-green-light);
+                transform: translateY(-3px);
+            }
+
+            .action-icon {
+                width: 56px;
+                height: 56px;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.75rem;
+                margin: 0 auto 1rem;
+            }
+
+            .action-title {
+                font-weight: 600;
+                color: #2c3e50;
+                margin-bottom: 0.5rem;
+            }
+
+            .action-desc {
+                font-size: 0.85rem;
+                color: #6c757d;
+                margin-bottom: 0;
+            }
+
+            .activity-list {
+                max-height: 400px;
+                overflow-y: auto;
+            }
+
+            .activity-item {
+                display: flex;
+                align-items: start;
+                padding: 1rem 1.25rem;
+                border-bottom: 1px solid #f0f0f0;
+            }
+
+            .activity-item:last-child {
+                border-bottom: none;
+            }
+
+            .activity-icon {
+                width: 40px;
+                height: 40px;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                margin-right: 1rem;
+            }
+
+            .activity-content {
+                flex-grow: 1;
+            }
+
+            .activity-title {
+                font-weight: 500;
+                color: #2c3e50;
+                margin-bottom: 0.25rem;
+                font-size: 0.9rem;
+            }
+
+            .activity-time {
+                font-size: 0.75rem;
+                color: #6c757d;
+            }
+
+            .info-icon {
+                width: 56px;
+                height: 56px;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 2rem;
+            }
+
+            .step-card {
+                padding: 1.5rem;
+                background: #f8f9fa;
+                border-radius: 12px;
+                height: 100%;
+            }
+
+            .step-number {
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, var(--spring-green), var(--spring-green-dark));
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 700;
+                margin-bottom: 1rem;
+            }
+
+            .step-title {
+                font-weight: 600;
+                color: #2c3e50;
+                margin-bottom: 0.5rem;
+            }
+
+            .step-desc {
+                font-size: 0.875rem;
+                color: #6c757d;
+                margin-bottom: 0;
+            }
+
+            code {
+                background-color: #f8f9fa;
+                padding: 0.25rem 0.5rem;
+                border-radius: 4px;
+                font-size: 0.875rem;
+            }
+        </style>
+
+        <script>
+            // Alpine.js component for dashboard stats
+            function dashboardStats() {
+                return {
+                    stats: {
+                        totalProjects: 0,
+                        totalVersions: 0,
+                        totalDocLinks: 0,
+                        activeConnections: 0,
+                        latestVersions: 0,
+                        totalRequests: 0
+                    },
+                    init() {
+                        // Fetch stats from server
+                        this.loadStats();
+                        // Refresh every 30 seconds
+                        setInterval(() => this.loadStats(), 30000);
+                    },
+                    async loadStats() {
+                        try {
+                            const response = await fetch('/api/dashboard/stats');
+                            if (response.ok) {
+                                this.stats = await response.json();
+                            }
+                        } catch (error) {
+                            console.error('Failed to load dashboard stats:', error);
+                        }
+                    }
+                };
+            }
+
+            // Copy MCP endpoint to clipboard
+            function copyEndpoint() {
+                const endpoint = document.querySelector('code').textContent;
+                navigator.clipboard.writeText(endpoint).then(() => {
+                    alert('MCP endpoint copied to clipboard!');
+                });
+            }
+        </script>
+    </th:block>
+</body>
+</html>
