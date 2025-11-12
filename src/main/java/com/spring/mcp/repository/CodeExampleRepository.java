@@ -60,4 +60,57 @@ public interface CodeExampleRepository extends JpaRepository<CodeExample, Long> 
      */
     @Query("SELECT DISTINCT c.category FROM CodeExample c WHERE c.category IS NOT NULL ORDER BY c.category")
     List<String> findDistinctCategories();
+
+    /**
+     * Find examples by version ID
+     */
+    List<CodeExample> findByVersionId(Long versionId);
+
+    /**
+     * Find examples by project slug
+     */
+    @Query("SELECT c FROM CodeExample c JOIN c.version v JOIN v.project p WHERE p.slug = :slug")
+    List<CodeExample> findByVersionProjectSlug(@Param("slug") String slug);
+
+    /**
+     * Find examples by project slug and version string
+     */
+    @Query("SELECT c FROM CodeExample c JOIN c.version v JOIN v.project p WHERE p.slug = :slug AND v.version = :version")
+    List<CodeExample> findByVersionProjectSlugAndVersionVersion(@Param("slug") String slug, @Param("version") String version);
+
+    /**
+     * Advanced filtering with project, version, category, search text
+     * Search includes example title, description, project name, and project slug
+     */
+    @Query(value = """
+        SELECT ce.* FROM code_examples ce
+        JOIN project_versions pv ON ce.version_id = pv.id
+        JOIN spring_projects sp ON pv.project_id = sp.id
+        WHERE (:projectSlug IS NULL OR sp.slug = :projectSlug)
+        AND (:versionStr IS NULL OR pv.version = :versionStr)
+        AND (:category IS NULL OR ce.category = :category)
+        AND (:searchText IS NULL OR
+             LOWER(ce.title::text) LIKE LOWER(CONCAT('%', :searchText, '%')) OR
+             LOWER(ce.description::text) LIKE LOWER(CONCAT('%', :searchText, '%')) OR
+             LOWER(sp.name::text) LIKE LOWER(CONCAT('%', :searchText, '%')) OR
+             LOWER(sp.slug::text) LIKE LOWER(CONCAT('%', :searchText, '%')))
+        ORDER BY sp.name, pv.version, ce.title
+        """, nativeQuery = true)
+    List<CodeExample> findWithFilters(
+        @Param("projectSlug") String projectSlug,
+        @Param("versionStr") String versionStr,
+        @Param("category") String category,
+        @Param("searchText") String searchText
+    );
+
+    /**
+     * Check if example with source URL already exists for a version
+     */
+    boolean existsByVersionAndSourceUrl(ProjectVersion version, String sourceUrl);
+
+    /**
+     * Check if example with title already exists for a version
+     * (Used for guides where multiple examples share the same sourceUrl)
+     */
+    boolean existsByVersionAndTitle(ProjectVersion version, String title);
 }

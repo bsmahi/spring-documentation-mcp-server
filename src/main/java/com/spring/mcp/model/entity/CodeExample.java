@@ -2,8 +2,6 @@ package com.spring.mcp.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -40,7 +38,6 @@ public class CodeExample {
     private String description;
 
     @Column(name = "code_snippet", nullable = false, columnDefinition = "TEXT")
-    @Lob
     private String codeSnippet;
 
     @Column(length = 50)
@@ -50,7 +47,6 @@ public class CodeExample {
     @Column(length = 100)
     private String category;
 
-    @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(columnDefinition = "text[]")
     private String[] tags;
 

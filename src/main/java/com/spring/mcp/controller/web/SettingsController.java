@@ -1,9 +1,11 @@
 package com.spring.mcp.controller.web;
 
 import com.spring.mcp.model.entity.ApiKey;
+import com.spring.mcp.model.entity.SchedulerSettings;
 import com.spring.mcp.model.entity.Settings;
 import com.spring.mcp.service.ApiKeyService;
 import com.spring.mcp.service.SettingsService;
+import com.spring.mcp.service.scheduler.SchedulerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +37,7 @@ public class SettingsController {
 
     private final SettingsService settingsService;
     private final ApiKeyService apiKeyService;
+    private final SchedulerService schedulerService;
 
     /**
      * Display settings page.
@@ -61,6 +64,17 @@ public class SettingsController {
         List<ApiKey> apiKeys = apiKeyService.getAllApiKeys();
         model.addAttribute("apiKeys", apiKeys);
         model.addAttribute("apiKeyStats", apiKeyService.getStatistics());
+
+        // Load scheduler settings
+        SchedulerSettings schedulerSettings = schedulerService.getSettings();
+        model.addAttribute("schedulerSettings", schedulerSettings);
+
+        // Format time for display based on user preference
+        String displayTime = schedulerService.formatTimeForDisplay(
+            schedulerSettings.getSyncTime(),
+            schedulerSettings.getTimeFormat()
+        );
+        model.addAttribute("displayTime", displayTime);
 
         return "settings/index";
     }
@@ -92,6 +106,73 @@ public class SettingsController {
         }
 
         return "redirect:/settings";
+    }
+
+    // ==================== Scheduler Configuration ====================
+
+    /**
+     * Update scheduler settings (sync time and enabled status)
+     */
+    @PostMapping("/scheduler")
+    public String updateSchedulerSettings(
+            @RequestParam(value = "syncEnabled", defaultValue = "false") boolean syncEnabled,
+            @RequestParam String syncTime,
+            RedirectAttributes redirectAttributes) {
+
+        log.debug("Updating scheduler settings: syncEnabled={}, syncTime={}", syncEnabled, syncTime);
+
+        try {
+            SchedulerSettings currentSettings = schedulerService.getSettings();
+            schedulerService.updateSettings(syncEnabled, syncTime, currentSettings.getTimeFormat());
+
+            redirectAttributes.addFlashAttribute("success",
+                "Scheduler settings updated successfully. " +
+                (syncEnabled ? "Automatic sync enabled at " + syncTime : "Automatic sync disabled"));
+
+            log.info("Scheduler settings updated: syncEnabled={}, syncTime={}", syncEnabled, syncTime);
+        } catch (Exception e) {
+            log.error("Error updating scheduler settings", e);
+            redirectAttributes.addFlashAttribute("error",
+                "Failed to update scheduler settings: " + e.getMessage());
+        }
+
+        return "redirect:/settings";
+    }
+
+    /**
+     * Update time format immediately (12h/24h toggle) - AJAX endpoint
+     */
+    @PostMapping("/scheduler/time-format")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> updateTimeFormat(@RequestParam String timeFormat) {
+        log.debug("Updating time format to: {}", timeFormat);
+
+        try {
+            // Validate time format
+            if (!timeFormat.equals("12h") && !timeFormat.equals("24h")) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "error", "Invalid time format"));
+            }
+
+            SchedulerSettings settings = schedulerService.updateTimeFormat(timeFormat);
+
+            // Format time for display
+            String displayTime = schedulerService.formatTimeForDisplay(
+                settings.getSyncTime(),
+                settings.getTimeFormat()
+            );
+
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Time format updated to " + timeFormat,
+                "displayTime", displayTime
+            ));
+
+        } catch (Exception e) {
+            log.error("Error updating time format", e);
+            return ResponseEntity.internalServerError()
+                .body(Map.of("success", false, "error", "Failed to update time format"));
+        }
     }
 
     // ==================== API Key Management ====================

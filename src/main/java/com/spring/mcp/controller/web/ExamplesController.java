@@ -34,25 +34,79 @@ public class ExamplesController {
     private final SpringProjectRepository springProjectRepository;
 
     /**
-     * List all code examples.
+     * List all code examples with advanced filtering and full-text search.
+     * Supports filtering by project, version, category, and free text search.
      *
+     * @param projectSlug the project slug filter (optional)
+     * @param version the version string filter (optional)
+     * @param category the category filter (optional)
+     * @param search free text search query (optional)
      * @param model Spring MVC model to add attributes for the view
      * @return view name "examples/list"
      */
     @GetMapping
-    public String listExamples(Model model) {
-        log.debug("Listing all code examples");
+    public String listExamples(
+            @RequestParam(required = false) String projectSlug,
+            @RequestParam(required = false) String version,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String search,
+            Model model) {
 
-        // Set active page for sidebar navigation
-        model.addAttribute("activePage", "examples");
-        model.addAttribute("pageTitle", "Code Examples");
+        log.debug("Listing code examples - projectSlug: {}, version: {}, category: {}, search: '{}'",
+            projectSlug, version, category, search);
 
-        // Load all examples sorted by title
-        var examples = codeExampleRepository.findAll(Sort.by(Sort.Direction.ASC, "title"));
-        model.addAttribute("examples", examples);
-        model.addAttribute("totalElements", examples.size());
+        // Convert empty strings to null for proper SQL filtering
+        String normalizedProjectSlug = (projectSlug != null && projectSlug.trim().isEmpty()) ? null : projectSlug;
+        String normalizedVersion = (version != null && version.trim().isEmpty()) ? null : version;
+        String normalizedCategory = (category != null && category.trim().isEmpty()) ? null : category;
+        String normalizedSearch = (search != null && search.trim().isEmpty()) ? null : search;
 
-        return "examples/list";
+        try {
+            // Use the advanced filtering query
+            var examples = codeExampleRepository.findWithFilters(
+                normalizedProjectSlug,
+                normalizedVersion,
+                normalizedCategory,
+                normalizedSearch
+            );
+
+            log.debug("Found {} code examples matching filters", examples.size());
+
+            // Prepare filter data for dropdowns
+            var allProjects = springProjectRepository.findAll(Sort.by(Sort.Direction.ASC, "name")).stream()
+                .filter(p -> p.getActive())
+                .map(p -> p.getSlug())
+                .distinct()
+                .toList();
+
+            var allCategories = codeExampleRepository.findDistinctCategories();
+
+            // Add attributes to model
+            model.addAttribute("examples", examples);
+            model.addAttribute("allProjects", allProjects);
+            model.addAttribute("allCategories", allCategories);
+            model.addAttribute("activePage", "examples");
+            model.addAttribute("pageTitle", "Code Examples");
+            model.addAttribute("totalElements", examples.size());
+
+            // Preserve filter values
+            model.addAttribute("selectedProject", projectSlug != null ? projectSlug : "");
+            model.addAttribute("selectedCategory", category != null ? category : "");
+            model.addAttribute("searchQuery", search != null ? search : "");
+
+            return "examples/list";
+
+        } catch (Exception e) {
+            log.error("Error listing code examples", e);
+            model.addAttribute("error", "Error loading code examples: " + e.getMessage());
+            model.addAttribute("examples", java.util.List.of());
+            model.addAttribute("allProjects", java.util.List.of());
+            model.addAttribute("allCategories", java.util.List.of());
+            model.addAttribute("activePage", "examples");
+            model.addAttribute("pageTitle", "Code Examples");
+            model.addAttribute("totalElements", 0);
+            return "examples/list";
+        }
     }
 
     /**

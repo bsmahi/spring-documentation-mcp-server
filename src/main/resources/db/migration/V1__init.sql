@@ -1,7 +1,7 @@
--- Consolidated Initial Schema for Spring MCP Server
--- Version: 1.0.0 (Restructured)
--- Description: Complete schema with Spring Boot-centric architecture
--- Date: 2025-11-09
+-- Spring MCP Server - Complete Initial Database Schema
+-- Version: 1.0.0 (Consolidated)
+-- Description: Complete schema for Spring MCP Server with all features
+-- Date: 2025-11-12
 
 -- ============================================================
 -- CORE TABLES
@@ -210,15 +210,16 @@ CREATE TABLE users (
     username VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     email VARCHAR(255),
-    role VARCHAR(50) NOT NULL DEFAULT 'USER',
+    role VARCHAR(50) NOT NULL DEFAULT 'VIEWER',
     enabled BOOLEAN DEFAULT true,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT check_user_role CHECK (role IN ('ADMIN', 'USER', 'READONLY'))
+    CONSTRAINT check_user_role CHECK (role IN ('ADMIN', 'VIEWER'))
 );
 
 COMMENT ON TABLE users IS 'Users with access to the management UI';
+COMMENT ON COLUMN users.role IS 'User role: ADMIN (full access) or VIEWER (read-only)';
 COMMENT ON COLUMN users.enabled IS 'Technical flag for Spring Security - whether account is not locked/expired';
 COMMENT ON COLUMN users.is_active IS 'Business flag - whether user account is active and can login';
 
@@ -226,6 +227,84 @@ COMMENT ON COLUMN users.is_active IS 'Business flag - whether user account is ac
 -- BCrypt hash for 'admin' with strength 10
 INSERT INTO users (username, password, email, role, enabled, is_active) VALUES
     ('admin', '{bcrypt}$2a$10$f/n2U7h.G4s3FdeYYSkFuehqUtVPiBbeB0R5iJM7kL1lMVUsrenLa', 'admin@springmcp.local', 'ADMIN', true, true);
+
+-- ============================================================
+-- Settings Table (Singleton Pattern)
+-- ============================================================
+CREATE TABLE settings (
+    id BIGSERIAL PRIMARY KEY,
+    enterprise_subscription_enabled BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+COMMENT ON TABLE settings IS 'System-wide settings (singleton - only one row)';
+
+-- Insert default settings row
+INSERT INTO settings (enterprise_subscription_enabled) VALUES (false);
+
+-- Add a constraint to ensure only one row exists in the settings table
+CREATE UNIQUE INDEX idx_settings_singleton ON settings ((id IS NOT NULL));
+
+-- ============================================================
+-- Scheduler Settings Table (Singleton Pattern)
+-- ============================================================
+CREATE TABLE scheduler_settings (
+    id BIGSERIAL PRIMARY KEY,
+    sync_enabled BOOLEAN NOT NULL DEFAULT true,
+    sync_time VARCHAR(5) NOT NULL DEFAULT '03:00', -- HH:mm format (24h)
+    time_format VARCHAR(3) NOT NULL DEFAULT '24h', -- '12h' or '24h'
+    last_sync_run TIMESTAMP,
+    next_sync_run TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_time_format CHECK (time_format IN ('12h', '24h')),
+    CONSTRAINT chk_sync_time_format CHECK (sync_time ~ '^([0-1][0-9]|2[0-3]):[0-5][0-9]$')
+);
+
+COMMENT ON TABLE scheduler_settings IS 'Stores configuration for automatic comprehensive synchronization scheduling';
+COMMENT ON COLUMN scheduler_settings.sync_enabled IS 'Whether automatic sync is enabled';
+COMMENT ON COLUMN scheduler_settings.sync_time IS 'Time to run sync in HH:mm 24-hour format';
+COMMENT ON COLUMN scheduler_settings.time_format IS 'Display format preference: 12h or 24h';
+COMMENT ON COLUMN scheduler_settings.last_sync_run IS 'Timestamp of last automatic sync execution';
+COMMENT ON COLUMN scheduler_settings.next_sync_run IS 'Calculated timestamp for next scheduled sync';
+
+-- Insert default scheduler settings with calculated next_sync_run
+INSERT INTO scheduler_settings (sync_enabled, sync_time, time_format, next_sync_run)
+VALUES (
+    true,
+    '03:00',
+    '24h',
+    -- Calculate next run: if current time is before 03:00 today, use today at 03:00, otherwise tomorrow at 03:00
+    CASE
+        WHEN CURRENT_TIME < TIME '03:00' THEN
+            CURRENT_DATE + TIME '03:00'
+        ELSE
+            (CURRENT_DATE + INTERVAL '1 day') + TIME '03:00'
+    END
+);
+
+-- ============================================================
+-- API Keys Table (for MCP Authentication)
+-- ============================================================
+CREATE TABLE api_keys (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    key_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NOT NULL,
+    last_used_at TIMESTAMP,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    description TEXT,
+    CONSTRAINT chk_name_length CHECK (LENGTH(name) >= 3)
+);
+
+COMMENT ON TABLE api_keys IS 'API keys for MCP endpoint authentication';
+COMMENT ON COLUMN api_keys.name IS 'Human-readable name for the API key (minimum 3 characters)';
+COMMENT ON COLUMN api_keys.key_hash IS 'BCrypt hashed API key (never store plain text)';
+COMMENT ON COLUMN api_keys.created_by IS 'Username of the user who created this API key';
+COMMENT ON COLUMN api_keys.last_used_at IS 'Timestamp of last successful authentication with this key';
+COMMENT ON COLUMN api_keys.is_active IS 'Whether this API key is currently active';
 
 -- ============================================================
 -- MCP Connection Logs Table
@@ -303,6 +382,14 @@ CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_users_enabled ON users(enabled) WHERE enabled = true;
 CREATE INDEX idx_users_is_active ON users(is_active) WHERE is_active = true;
 
+-- Scheduler Settings indexes
+CREATE INDEX idx_scheduler_settings_enabled ON scheduler_settings(sync_enabled);
+
+-- API Keys indexes
+CREATE INDEX idx_api_keys_key_hash ON api_keys(key_hash);
+CREATE INDEX idx_api_keys_active ON api_keys(is_active) WHERE is_active = true;
+CREATE INDEX idx_api_keys_created_by ON api_keys(created_by);
+
 -- MCP Connection logs indexes
 CREATE INDEX idx_mcp_connections_client ON mcp_connections(client_id);
 CREATE INDEX idx_mcp_connections_connected_at ON mcp_connections(connected_at);
@@ -353,6 +440,16 @@ CREATE TRIGGER update_code_examples_updated_at
 
 CREATE TRIGGER update_users_updated_at
     BEFORE UPDATE ON users
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_settings_updated_at
+    BEFORE UPDATE ON settings
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_scheduler_settings_updated_at
+    BEFORE UPDATE ON scheduler_settings
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 

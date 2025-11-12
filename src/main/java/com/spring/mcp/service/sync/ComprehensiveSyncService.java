@@ -1,6 +1,7 @@
 package com.spring.mcp.service.sync;
 
 import com.spring.mcp.model.entity.SpringProject;
+import com.spring.mcp.model.event.SyncProgressEvent;
 import com.spring.mcp.repository.SpringProjectRepository;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +31,9 @@ public class ComprehensiveSyncService {
     private final SpringBootVersionSyncService springBootVersionSyncService;
     private final ProjectRelationshipSyncService projectRelationshipSyncService;
     private final DocumentationSyncService documentationSyncService;
+    private final CodeExamplesSyncService codeExamplesSyncService;
     private final SpringProjectRepository springProjectRepository;
+    private final SyncProgressTracker progressTracker;
 
     /**
      * Synchronize ALL Spring projects and versions from all available sources.
@@ -49,7 +52,8 @@ public class ComprehensiveSyncService {
 
         try {
             // PHASE 0: Sync Spring Boot versions to spring_boot_versions table (PRIMARY TABLE)
-            log.info("Phase 0/5: Syncing Spring Boot versions to spring_boot_versions table...");
+            log.info("Phase 0/7: Syncing Spring Boot versions to spring_boot_versions table...");
+            publishProgress(0, 7, "Syncing Spring Boot versions", "running", 0);
             SpringBootVersionSyncService.SyncResult bootVersionsResult = springBootVersionSyncService.syncSpringBootVersions();
             result.setBootVersionsResult(bootVersionsResult);
             result.addVersionsCreated(bootVersionsResult.getVersionsCreated());
@@ -65,7 +69,8 @@ public class ComprehensiveSyncService {
             }
 
             // PHASE 1: Sync from Spring Generations API (Spring Boot with support dates)
-            log.info("Phase 1/5: Syncing from Spring Generations API...");
+            log.info("Phase 1/7: Syncing from Spring Generations API...");
+            publishProgress(1, 7, "Syncing from Spring Generations API", "running", 14);
             SpringGenerationsSyncService.SyncResult generationsResult = generationsSyncService.syncAllGenerations();
             result.setGenerationsResult(generationsResult);
             result.addProjectsCreated(generationsResult.getProjectsCreated());
@@ -81,7 +86,8 @@ public class ComprehensiveSyncService {
             }
 
             // PHASE 2: Sync from Spring Initializr (additional Spring Boot versions)
-            log.info("Phase 2/5: Syncing from Spring Initializr API...");
+            log.info("Phase 2/7: Syncing from Spring Initializr API...");
+            publishProgress(2, 7, "Syncing from Spring Initializr API", "running", 29);
             ProjectSyncService.SyncResult initializrResult = projectSyncService.syncSpringBoot();
             result.setInitializrResult(initializrResult);
             result.addProjectsCreated(initializrResult.getProjectsCreated());
@@ -97,7 +103,8 @@ public class ComprehensiveSyncService {
             }
 
             // PHASE 3: Crawl project pages to enrich version data
-            log.info("Phase 3/5: Crawling Spring project pages for documentation links and support dates...");
+            log.info("Phase 3/7: Crawling Spring project pages for documentation links and support dates...");
+            publishProgress(3, 7, "Crawling Spring project pages", "running", 43);
             CrawlerResult crawlerResult = crawlAllProjects();
             result.setCrawlerResult(crawlerResult);
             result.addVersionsUpdated(crawlerResult.getTotalVersionsUpdated());
@@ -114,7 +121,8 @@ public class ComprehensiveSyncService {
             }
 
             // PHASE 4: Sync project relationships (parent/child hierarchies)
-            log.info("Phase 4/6: Syncing project relationships (parent/child hierarchies)...");
+            log.info("Phase 4/7: Syncing project relationships (parent/child hierarchies)...");
+            publishProgress(4, 7, "Syncing project relationships", "running", 57);
             ProjectRelationshipSyncService.SyncResult relationshipsResult = projectRelationshipSyncService.syncProjectRelationships();
             result.setRelationshipsResult(relationshipsResult);
             result.addRelationshipsCreated(relationshipsResult.getRelationshipsCreated());
@@ -129,7 +137,8 @@ public class ComprehensiveSyncService {
             }
 
             // PHASE 5: Sync documentation content (fetch OVERVIEW from spring.io and convert to Markdown)
-            log.info("Phase 5/6: Syncing documentation content (OVERVIEW from spring.io)...");
+            log.info("Phase 5/7: Syncing documentation content (OVERVIEW from spring.io)...");
+            publishProgress(5, 7, "Syncing documentation content", "running", 71);
             DocumentationSyncService.SyncResult documentationResult = documentationSyncService.syncAllDocumentation();
             result.setDocumentationResult(documentationResult);
             result.addDocumentationLinksCreated(documentationResult.getLinksCreated());
@@ -144,13 +153,31 @@ public class ComprehensiveSyncService {
                 log.warn("✗ Phase 5 completed with errors: {}", documentationResult.getErrorMessage());
             }
 
+            // PHASE 6: Sync code examples (extract samples from spring.io project pages)
+            log.info("Phase 6/7: Syncing code examples (samples from spring.io)...");
+            publishProgress(6, 7, "Syncing code examples", "running", 86);
+            CodeExamplesSyncService.SyncResult codeExamplesResult = codeExamplesSyncService.syncCodeExamples();
+            result.setCodeExamplesResult(codeExamplesResult);
+            result.addCodeExamplesCreated(codeExamplesResult.getExamplesCreated());
+            result.addCodeExamplesUpdated(codeExamplesResult.getExamplesUpdated());
+            result.addErrorsEncountered(codeExamplesResult.getErrorsEncountered());
+
+            if (codeExamplesResult.isSuccess()) {
+                log.info("✓ Phase 6 completed: {} code examples created, {} updated",
+                    codeExamplesResult.getExamplesCreated(),
+                    codeExamplesResult.getExamplesUpdated());
+            } else {
+                log.warn("✗ Phase 6 completed with errors: {}", codeExamplesResult.getErrorMessage());
+            }
+
             // Determine overall success
             result.setSuccess(bootVersionsResult.isSuccess() &&
                             generationsResult.isSuccess() &&
                             initializrResult.isSuccess() &&
                             crawlerResult.isSuccess() &&
                             relationshipsResult.isSuccess() &&
-                            documentationResult.isSuccess());
+                            documentationResult.isSuccess() &&
+                            codeExamplesResult.isSuccess());
 
             // Build summary message
             StringBuilder summary = new StringBuilder();
@@ -168,6 +195,9 @@ public class ComprehensiveSyncService {
             result.addErrorsEncountered(1);
         } finally {
             result.setEndTime(LocalDateTime.now());
+
+            // Publish final completion event
+            publishCompletion(result.isSuccess(), result.getSummaryMessage());
 
             log.info("=".repeat(80));
             log.info("COMPREHENSIVE SYNC COMPLETED");
@@ -272,6 +302,8 @@ public class ComprehensiveSyncService {
         private int totalRelationshipsCreated;
         private int totalDocumentationLinksCreated;
         private int totalDocumentationLinksUpdated;
+        private int totalCodeExamplesCreated;
+        private int totalCodeExamplesUpdated;
         private int totalErrors;
 
         // Individual phase results
@@ -281,6 +313,7 @@ public class ComprehensiveSyncService {
         private CrawlerResult crawlerResult;
         private ProjectRelationshipSyncService.SyncResult relationshipsResult;
         private DocumentationSyncService.SyncResult documentationResult;
+        private CodeExamplesSyncService.SyncResult codeExamplesResult;
 
         // Helper methods to aggregate statistics
         public void addProjectsCreated(int count) {
@@ -307,8 +340,59 @@ public class ComprehensiveSyncService {
             this.totalDocumentationLinksUpdated += count;
         }
 
+        public void addCodeExamplesCreated(int count) {
+            this.totalCodeExamplesCreated += count;
+        }
+
+        public void addCodeExamplesUpdated(int count) {
+            this.totalCodeExamplesUpdated += count;
+        }
+
         public void addErrorsEncountered(int count) {
             this.totalErrors += count;
         }
+    }
+
+    /**
+     * Helper method to publish progress updates to connected SSE clients.
+     *
+     * @param currentPhase current phase number (0-5)
+     * @param totalPhases total number of phases (6)
+     * @param description phase description
+     * @param status status ("running", "completed", "error")
+     * @param progressPercent progress percentage (0-100)
+     */
+    private void publishProgress(int currentPhase, int totalPhases, String description, String status, int progressPercent) {
+        SyncProgressEvent event = SyncProgressEvent.builder()
+            .currentPhase(currentPhase)
+            .totalPhases(totalPhases)
+            .phaseDescription(description)
+            .status(status)
+            .progressPercent(progressPercent)
+            .completed(false)
+            .build();
+
+        progressTracker.publishProgress(event);
+    }
+
+    /**
+     * Helper method to publish final completion event.
+     *
+     * @param success whether the sync was successful
+     * @param message summary message
+     */
+    private void publishCompletion(boolean success, String message) {
+        SyncProgressEvent event = SyncProgressEvent.builder()
+            .currentPhase(7)
+            .totalPhases(7)
+            .phaseDescription("Sync Complete")
+            .status(success ? "completed" : "error")
+            .progressPercent(100)
+            .message(message)
+            .completed(true)
+            .errorMessage(success ? null : message)
+            .build();
+
+        progressTracker.publishProgress(event);
     }
 }

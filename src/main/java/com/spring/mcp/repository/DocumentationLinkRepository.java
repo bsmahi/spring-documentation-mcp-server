@@ -60,4 +60,18 @@ public interface DocumentationLinkRepository extends JpaRepository<Documentation
      * Find all links for a specific version ID
      */
     List<DocumentationLink> findByVersionId(Long versionId);
+
+    /**
+     * Count documentation links that have been updated in the last N days
+     *
+     * @param days number of days to look back
+     * @return count of documentation links recently updated
+     */
+    @Query(value = """
+        SELECT COUNT(d.id)
+        FROM documentation_links d
+        WHERE d.updated_at >= CURRENT_TIMESTAMP - INTERVAL '1 day' * :days
+        AND d.is_active = true
+        """, nativeQuery = true)
+    long countWithRecentlyUpdatedVersions(@Param("days") int days);
 }

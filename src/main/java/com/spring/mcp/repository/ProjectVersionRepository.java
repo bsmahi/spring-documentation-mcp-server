@@ -113,6 +113,23 @@ public interface ProjectVersionRepository extends JpaRepository<ProjectVersion, 
     Page<ProjectVersion> findAllWithProject(Pageable pageable);
 
     /**
+     * Find the first version for a project ordered by creation date descending (latest first)
+     *
+     * @param project the Spring project
+     * @return the most recently created version for the project
+     */
+    Optional<ProjectVersion> findFirstByProjectOrderByCreatedAtDesc(SpringProject project);
+
+    /**
+     * Find all versions by project slug
+     *
+     * @param projectSlug the project slug
+     * @return list of versions for the project
+     */
+    @Query("SELECT v FROM ProjectVersion v JOIN v.project p WHERE p.slug = :projectSlug")
+    List<ProjectVersion> findByProjectSlug(@Param("projectSlug") String projectSlug);
+
+    /**
      * Find all versions of a specific project that are compatible with a specific Spring Boot version.
      * Uses the spring_boot_compatibility table to determine compatibility.
      *
@@ -164,4 +181,32 @@ public interface ProjectVersionRepository extends JpaRepository<ProjectVersion, 
         ORDER BY v.project.name ASC, v.majorVersion DESC, v.minorVersion DESC, v.patchVersion DESC
         """)
     List<ProjectVersion> findAllBySpringBootVersionId(@Param("springBootVersionId") Long springBootVersionId);
+
+    /**
+     * Count distinct projects that have versions released in the last N days
+     *
+     * @param days number of days to look back
+     * @return count of distinct projects with recent releases
+     */
+    @Query(value = """
+        SELECT COUNT(DISTINCT project_id)
+        FROM project_versions
+        WHERE release_date >= CURRENT_DATE - :days
+        """, nativeQuery = true)
+    long countDistinctProjectsWithRecentReleases(@Param("days") int days);
+
+    /**
+     * Find top N projects with most recent release dates
+     *
+     * @param pageable pagination information (use PageRequest.of(0, limit))
+     * @return list of project versions with most recent releases
+     */
+    @Query("""
+        SELECT v
+        FROM ProjectVersion v
+        JOIN FETCH v.project
+        WHERE v.releaseDate IS NOT NULL
+        ORDER BY v.releaseDate DESC
+        """)
+    List<ProjectVersion> findTopByReleaseDateDesc(Pageable pageable);
 }

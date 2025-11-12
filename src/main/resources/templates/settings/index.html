@@ -5,6 +5,127 @@
       layout:decorate="~{layouts/main}">
 <head>
     <title>Settings - Spring MCP Server</title>
+    <style>
+        /* Beautiful Dark Theme Schedule Status Card */
+        .schedule-status-card {
+            background: linear-gradient(135deg, #1a1f2e 0%, #252d3d 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(99, 179, 237, 0.2);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3),
+                        0 0 20px rgba(99, 179, 237, 0.1);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .schedule-status-card:hover {
+            border-color: rgba(99, 179, 237, 0.4);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4),
+                        0 0 30px rgba(99, 179, 237, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .schedule-status-header {
+            background: linear-gradient(90deg, rgba(99, 179, 237, 0.15) 0%, rgba(99, 179, 237, 0.05) 100%);
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid rgba(99, 179, 237, 0.2);
+            font-weight: 600;
+            font-size: 1rem;
+            color: #63b3ed;
+            letter-spacing: 0.5px;
+        }
+
+        .schedule-status-body {
+            padding: 1.5rem;
+        }
+
+        .status-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.2s ease;
+            height: 100%;
+        }
+
+        .status-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(99, 179, 237, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .status-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #a0aec0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .status-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+        }
+
+        .badge-status {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .badge-status-active {
+            background: linear-gradient(135deg, rgba(72, 187, 120, 0.2) 0%, rgba(72, 187, 120, 0.1) 100%);
+            color: #68d391;
+            border: 1px solid rgba(72, 187, 120, 0.3);
+        }
+
+        .badge-status-active:hover {
+            background: linear-gradient(135deg, rgba(72, 187, 120, 0.3) 0%, rgba(72, 187, 120, 0.15) 100%);
+            box-shadow: 0 0 15px rgba(72, 187, 120, 0.2);
+        }
+
+        .time-display {
+            background: linear-gradient(135deg, rgba(99, 179, 237, 0.15) 0%, rgba(99, 179, 237, 0.05) 100%);
+            color: #63b3ed;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Courier New', monospace;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border: 1px solid rgba(99, 179, 237, 0.3);
+            letter-spacing: 0.5px;
+        }
+
+        .text-primary-custom {
+            color: #63b3ed;
+            font-weight: 500;
+        }
+
+        .text-muted-custom {
+            color: #718096;
+            font-style: italic;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .schedule-status-body {
+                padding: 1rem;
+            }
+
+            .status-item {
+                padding: 0.75rem;
+            }
+        }
+    </style>
 </head>
 <body>
 <div layout:fragment="content">
@@ -107,13 +228,182 @@
                     </div>
                 </div>
             </form>
+        </div>
+    </div>
 
-            <hr class="my-4">
+    <!-- Scheduler Configuration -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white border-bottom">
+            <h5 class="mb-0">
+                <i class="bi bi-clock-history text-primary"></i> Automatic Sync Scheduler
+            </h5>
+            <small class="text-muted">Configure automatic comprehensive synchronization schedule</small>
+        </div>
+        <div class="card-body">
+            <form th:action="@{/settings/scheduler}" method="post" id="schedulerForm">
+                <div class="row mb-4">
+                    <!-- Enable/Disable Scheduling -->
+                    <div class="col-md-12 mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox"
+                                   id="syncEnabled"
+                                   name="syncEnabled"
+                                   th:checked="${schedulerSettings.syncEnabled}">
+                            <label class="form-check-label" for="syncEnabled">
+                                <strong>Enable Automatic Sync</strong>
+                            </label>
+                        </div>
+                        <small class="form-text text-muted d-block mt-1">
+                            <i class="bi bi-info-circle"></i>
+                            When enabled, comprehensive sync runs automatically at the scheduled time daily.
+                        </small>
+                    </div>
 
-            <div class="alert alert-info mb-0">
-                <i class="bi bi-lightbulb"></i>
-                <strong>Additional Settings:</strong> More configuration options will be available in future updates,
-                including documentation sync schedules, MCP server parameters, and user preferences.
+                    <!-- Sync Time -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-clock"></i> Sync Time
+                        </label>
+
+                        <!-- Hidden input to store the final 24h format time -->
+                        <input type="hidden" id="syncTime" name="syncTime" th:value="${schedulerSettings.syncTime}">
+
+                        <!-- 24h Format Dropdowns -->
+                        <div id="time24hContainer" class="d-flex gap-2">
+                            <select class="form-select" id="hour24" style="width: 80px;">
+                                <!-- Hours 0-23 -->
+                            </select>
+                            <span class="align-self-center">:</span>
+                            <select class="form-select" id="minute24" style="width: 80px;">
+                                <!-- Minutes 0-59 -->
+                            </select>
+                        </div>
+
+                        <!-- 12h Format Dropdowns -->
+                        <div id="time12hContainer" class="d-none d-flex gap-2">
+                            <select class="form-select" id="hour12" style="width: 80px;">
+                                <!-- Hours 1-12 -->
+                            </select>
+                            <span class="align-self-center">:</span>
+                            <select class="form-select" id="minute12" style="width: 80px;">
+                                <!-- Minutes 0-59 -->
+                            </select>
+                            <select class="form-select" id="ampm" style="width: 80px;">
+                                <option value="AM">AM</option>
+                                <option value="PM">PM</option>
+                            </select>
+                        </div>
+
+                        <small class="form-text text-muted d-block mt-1">
+                            Time when automatic sync will run daily
+                        </small>
+                    </div>
+
+                    <!-- Time Format Toggle -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-toggle-on"></i> Time Display Format
+                        </label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="timeFormatToggle" id="format24h"
+                                   value="24h" th:checked="${schedulerSettings.timeFormat == '24h'}"
+                                   onchange="updateTimeFormat('24h')">
+                            <label class="btn btn-outline-primary" for="format24h">24h</label>
+
+                            <input type="radio" class="btn-check" name="timeFormatToggle" id="format12h"
+                                   value="12h" th:checked="${schedulerSettings.timeFormat == '12h'}"
+                                   onchange="updateTimeFormat('12h')">
+                            <label class="btn btn-outline-primary" for="format12h">12h</label>
+                        </div>
+                        <small class="form-text text-muted d-block mt-1">
+                            Display preference (updates immediately)
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Current Schedule Status - Beautiful Dark Theme -->
+                <div th:if="${schedulerSettings.syncEnabled}" class="schedule-status-card mb-3">
+                    <div class="schedule-status-header">
+                        <i class="bi bi-clock-history me-2"></i>
+                        <span>Current Schedule Status</span>
+                    </div>
+                    <div class="schedule-status-body">
+                        <div class="row g-3">
+                            <div class="col-md-6 col-lg-3">
+                                <div class="status-item">
+                                    <div class="status-label">
+                                        <i class="bi bi-power text-success me-1"></i>
+                                        Status
+                                    </div>
+                                    <div class="status-value">
+                                        <span class="badge-status badge-status-active">
+                                            <i class="bi bi-check-circle-fill me-1"></i>
+                                            Active
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-lg-3">
+                                <div class="status-item">
+                                    <div class="status-label">
+                                        <i class="bi bi-alarm text-info me-1"></i>
+                                        Scheduled Time
+                                    </div>
+                                    <div class="status-value">
+                                        <code class="time-display" id="displayTimeText" th:text="${displayTime}">03:00</code>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-lg-3">
+                                <div class="status-item">
+                                    <div class="status-label">
+                                        <i class="bi bi-clock-history text-warning me-1"></i>
+                                        Last Run
+                                    </div>
+                                    <div class="status-value">
+                                        <span th:if="${schedulerSettings.lastSyncRun}"
+                                              th:text="${#temporals.format(schedulerSettings.lastSyncRun, 'MMM dd, HH:mm')}">
+                                            Never
+                                        </span>
+                                        <span class="text-muted-custom" th:unless="${schedulerSettings.lastSyncRun}">
+                                            Never
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-lg-3">
+                                <div class="status-item">
+                                    <div class="status-label">
+                                        <i class="bi bi-calendar-event text-primary me-1"></i>
+                                        Next Run
+                                    </div>
+                                    <div class="status-value">
+                                        <span class="text-primary-custom" th:if="${schedulerSettings.nextSyncRun}"
+                                              th:text="${#temporals.format(schedulerSettings.nextSyncRun, 'MMM dd, HH:mm')}">
+                                            Calculating...
+                                        </span>
+                                        <span class="text-muted-custom" th:unless="${schedulerSettings.nextSyncRun}">
+                                            Not scheduled
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-calendar-check"></i> Set New Schedule
+                    </button>
+                </div>
+            </form>
+
+            <div class="alert alert-info border-0 mt-3 mb-0">
+                <i class="bi bi-info-circle-fill text-warning"></i>
+                <strong>Note:</strong> The scheduler runs comprehensive sync which includes all 7 phases.
+                Changes to schedule take effect immediately after clicking "Set New Schedule".
             </div>
         </div>
     </div>
@@ -228,7 +518,7 @@
 
             <div class="alert alert-warning mt-3 mb-0">
                 <i class="bi bi-shield-exclamation"></i>
-                <strong>Security Note:</strong> API keys are stored securely using BCrypt hashing.
+                <strong>Security Note:</strong> API keys are stored securely using hashing.
                 The plain text key is shown only once during creation. Keep your API keys secure and rotate them regularly.
             </div>
         </div>
@@ -448,6 +738,172 @@
 
     <!-- Page-specific JavaScript -->
     <script>
+        // Get CSRF token
+        function getCsrfToken() {
+            const csrfInput = document.querySelector('input[name="_csrf"]');
+            return csrfInput ? csrfInput.value : '';
+        }
+
+        // Initialize time dropdowns
+        function initializeTimeDropdowns() {
+            const syncTimeValue = document.getElementById('syncTime').value; // Format: "HH:mm"
+            const [hours24, minutes] = syncTimeValue.split(':').map(Number);
+
+            // Populate 24h hour dropdown (0-23)
+            const hour24Select = document.getElementById('hour24');
+            for (let i = 0; i < 24; i++) {
+                const option = document.createElement('option');
+                option.value = String(i).padStart(2, '0');
+                option.textContent = String(i).padStart(2, '0');
+                if (i === hours24) option.selected = true;
+                hour24Select.appendChild(option);
+            }
+
+            // Populate 24h minute dropdown (0-59)
+            const minute24Select = document.getElementById('minute24');
+            for (let i = 0; i < 60; i++) {
+                const option = document.createElement('option');
+                option.value = String(i).padStart(2, '0');
+                option.textContent = String(i).padStart(2, '0');
+                if (i === minutes) option.selected = true;
+                minute24Select.appendChild(option);
+            }
+
+            // Populate 12h hour dropdown (1-12)
+            const hour12Select = document.getElementById('hour12');
+            for (let i = 1; i <= 12; i++) {
+                const option = document.createElement('option');
+                option.value = String(i).padStart(2, '0');
+                option.textContent = String(i).padStart(2, '0');
+                hour12Select.appendChild(option);
+            }
+
+            // Populate 12h minute dropdown (0-59)
+            const minute12Select = document.getElementById('minute12');
+            for (let i = 0; i < 60; i++) {
+                const option = document.createElement('option');
+                option.value = String(i).padStart(2, '0');
+                option.textContent = String(i).padStart(2, '0');
+                minute12Select.appendChild(option);
+            }
+
+            // Convert 24h to 12h and set values
+            const isPM = hours24 >= 12;
+            const hours12 = hours24 === 0 ? 12 : (hours24 > 12 ? hours24 - 12 : hours24);
+            hour12Select.value = String(hours12).padStart(2, '0');
+            minute12Select.value = String(minutes).padStart(2, '0');
+            document.getElementById('ampm').value = isPM ? 'PM' : 'AM';
+
+            // Add change listeners
+            [hour24Select, minute24Select, hour12Select, minute12Select, document.getElementById('ampm')].forEach(select => {
+                select.addEventListener('change', updateHiddenTimeInput);
+            });
+        }
+
+        // Update hidden syncTime input when dropdowns change
+        function updateHiddenTimeInput() {
+            const currentFormat = document.querySelector('input[name="timeFormatToggle"]:checked').value;
+            let hours24, minutes;
+
+            if (currentFormat === '24h') {
+                hours24 = document.getElementById('hour24').value;
+                minutes = document.getElementById('minute24').value;
+            } else {
+                const hours12 = parseInt(document.getElementById('hour12').value);
+                const ampm = document.getElementById('ampm').value;
+                minutes = document.getElementById('minute12').value;
+
+                // Convert 12h to 24h
+                if (ampm === 'AM') {
+                    hours24 = hours12 === 12 ? '00' : String(hours12).padStart(2, '0');
+                } else {
+                    hours24 = hours12 === 12 ? '12' : String(hours12 + 12).padStart(2, '0');
+                }
+            }
+
+            document.getElementById('syncTime').value = `${hours24}:${minutes}`;
+        }
+
+        // Toggle between 12h and 24h time pickers
+        function toggleTimePickers(format) {
+            const time24Container = document.getElementById('time24hContainer');
+            const time12Container = document.getElementById('time12hContainer');
+
+            if (format === '24h') {
+                time24Container.classList.remove('d-none');
+                time12Container.classList.add('d-none');
+            } else {
+                time24Container.classList.add('d-none');
+                time12Container.classList.remove('d-none');
+            }
+
+            // Sync the values between pickers
+            updateHiddenTimeInput();
+        }
+
+        // Update time format immediately (AJAX)
+        async function updateTimeFormat(format) {
+            try {
+                const formData = new FormData();
+                formData.append('timeFormat', format);
+
+                const csrfToken = getCsrfToken();
+                if (!csrfToken) {
+                    console.error('CSRF token not found');
+                    alert('Failed to update time format: Security token not found');
+                    return;
+                }
+                formData.append('_csrf', csrfToken);
+
+                console.log('Sending time format update request:', format);
+
+                const response = await fetch('/settings/scheduler/time-format', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                console.log('Response status:', response.status);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Response data:', data);
+
+                if (data.success) {
+                    // Update display time if element exists
+                    const displayTimeElement = document.getElementById('displayTimeText');
+                    if (displayTimeElement) {
+                        displayTimeElement.textContent = data.displayTime;
+                        console.log('Updated display time to:', data.displayTime);
+                    } else {
+                        console.warn('displayTimeText element not found - skipping display update');
+                    }
+
+                    // Toggle time pickers
+                    toggleTimePickers(format);
+
+                    console.log('Time format updated successfully to:', format);
+                } else {
+                    console.error('Server returned error:', data.error);
+                    alert('Failed to update time format: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error updating time format:', error);
+                alert('Failed to update time format: ' + error.message);
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTimeDropdowns();
+
+            // Set initial time picker visibility
+            const currentFormat = document.querySelector('input[name="timeFormatToggle"]:checked').value;
+            toggleTimePickers(currentFormat);
+        });
+
         // Generate API key preview
         document.getElementById('generateKeyBtn').addEventListener('click', async function() {
             try {

@@ -195,12 +195,12 @@
                             </div>
                             <span class="badge bg-danger-light text-danger">Recent</span>
                         </div>
-                        <h3 class="stat-number mb-1" th:text="${#lists.size(recentProjects)}">0</h3>
+                        <h3 class="stat-number mb-1" th:text="${recentProjectsCount}">0</h3>
                         <p class="stat-label text-muted mb-2">Recent Projects</p>
                         <div class="stat-footer">
                             <span class="text-danger small">
                                 <i class="bi bi-clock"></i>
-                                Last 5 projects
+                                Last 30 days
                             </span>
                         </div>
                     </div>
@@ -217,12 +217,12 @@
                             </div>
                             <span class="badge" style="background-color: rgba(108, 117, 125, 0.1) !important; color: #6c757d;">Updated</span>
                         </div>
-                        <h3 class="stat-number mb-1" th:text="${#lists.size(recentDocumentation)}">0</h3>
+                        <h3 class="stat-number mb-1" th:text="${recentDocsCount}">0</h3>
                         <p class="stat-label text-muted mb-2">Recent Docs</p>
                         <div class="stat-footer">
                             <span class="text-secondary small">
                                 <i class="bi bi-clock"></i>
-                                Last 5 docs
+                                Last 30 days
                             </span>
                         </div>
                     </div>
@@ -288,8 +288,8 @@
                                         <div class="action-icon bg-primary-light">
                                             <i class="bi bi-folder2-open text-primary"></i>
                                         </div>
-                                        <h6 class="action-title">Manage Projects</h6>
-                                        <p class="action-desc">View and manage Spring projects</p>
+                                        <h6 class="action-title">View Projects</h6>
+                                        <p class="action-desc">View Spring projects</p>
                                     </div>
                                 </a>
                             </div>
@@ -334,60 +334,29 @@
                     </div>
                     <div class="card-body p-0">
                         <div class="activity-list">
-                            <!-- Recent Projects -->
-                            <div class="activity-item" th:each="project : ${recentProjects}">
+                            <!-- Top 5 Projects with Newest Releases -->
+                            <div class="activity-item" th:each="version : ${recentActivityProjects}">
                                 <div class="activity-icon bg-spring-light">
-                                    <i class="bi bi-folder-plus text-spring"></i>
+                                    <i class="bi bi-rocket-takeoff text-spring"></i>
                                 </div>
                                 <div class="activity-content">
                                     <div class="activity-title">
-                                        <a th:href="@{/projects/{id}(id=${project.id})}" th:text="${project.name}" class="text-decoration-none">Project</a>
+                                        <a th:href="@{/projects/{id}(id=${version.project.id})}" th:text="${version.project.name}" class="text-decoration-none">Project</a>
                                     </div>
                                     <div class="activity-time">
-                                        <span class="badge bg-light text-dark">Project</span>
-                                        <span th:text="${#temporals.format(project.createdAt, 'MMM dd, yyyy')}">Recently added</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Recent Versions -->
-                            <div class="activity-item" th:each="version : ${recentVersions}" th:if="${#lists.size(recentProjects) < 3}">
-                                <div class="activity-icon bg-info-light">
-                                    <i class="bi bi-tag text-info"></i>
-                                </div>
-                                <div class="activity-content">
-                                    <div class="activity-title">
-                                        <a th:href="@{/versions/{id}(id=${version.id})}" th:text="${version.project.name + ' ' + version.version}" class="text-decoration-none">Version</a>
-                                    </div>
-                                    <div class="activity-time">
-                                        <span class="badge bg-light text-dark">Version</span>
-                                        <span th:text="${#temporals.format(version.createdAt, 'MMM dd, yyyy')}">Recently added</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Recent Documentation -->
-                            <div class="activity-item" th:each="doc : ${recentDocumentation}" th:if="${#lists.size(recentProjects) < 2 and #lists.size(recentVersions) < 2}">
-                                <div class="activity-icon bg-primary-light">
-                                    <i class="bi bi-file-earmark-plus text-primary"></i>
-                                </div>
-                                <div class="activity-content">
-                                    <div class="activity-title">
-                                        <a th:href="@{/documentation/{id}(id=${doc.id})}" th:text="${doc.title}" class="text-decoration-none">Documentation</a>
-                                    </div>
-                                    <div class="activity-time">
-                                        <span class="badge bg-light text-dark">Doc</span>
-                                        <span th:text="${#temporals.format(doc.createdAt, 'MMM dd, yyyy')}">Recently added</span>
+                                        <span class="badge bg-light text-dark" th:text="${version.version}">Version</span>
+                                        <span th:if="${version.releaseDate != null}" th:text="${'Released: ' + #temporals.format(version.releaseDate, 'MMM dd, yyyy')}">Release date</span>
+                                        <span th:if="${version.releaseDate == null}" class="text-muted">No release date</span>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Empty State -->
-                            <div class="activity-item" th:if="${#lists.isEmpty(recentProjects) and #lists.isEmpty(recentVersions) and #lists.isEmpty(recentDocumentation)}">
+                            <div class="activity-item" th:if="${#lists.isEmpty(recentActivityProjects)}">
                                 <div class="text-center py-4 text-muted">
                                     <i class="bi bi-inbox display-6"></i>
-                                    <p class="mb-0 mt-2">No recent activity</p>
-                                    <p class="small mb-0">Start by adding projects or documentation</p>
+                                    <p class="mb-0 mt-2">No recent releases</p>
+                                    <p class="small mb-0">Projects with recent releases will appear here</p>
                                 </div>
                             </div>
                         </div>
@@ -455,16 +424,27 @@
                                     </div>
                                 </div>
 
-                                <div class="alert alert-info mt-4 mb-0">
-                                    <div class="d-flex align-items-center">
-                                        <i class="bi bi-plug-fill me-2 fs-5"></i>
-                                        <div class="flex-grow-1">
-                                            <strong>MCP Endpoint:</strong>
-                                            <code class="ms-2" th:text="${mcpEndpoint}">http://localhost:8080/mcp/sse</code>
+                                <!-- MCP Endpoint - Beautiful Dark Theme -->
+                                <div class="mcp-endpoint-card mt-4 mb-0">
+                                    <div class="mcp-endpoint-header">
+                                        <i class="bi bi-plug-fill me-2"></i>
+                                        <span>MCP Connection Endpoint</span>
+                                    </div>
+                                    <div class="mcp-endpoint-body">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-grow-1">
+                                                <div class="endpoint-label">
+                                                    <i class="bi bi-server me-1 text-primary"></i>
+                                                    Server Endpoint
+                                                </div>
+                                                <code class="endpoint-url" id="mcpEndpointUrl" th:text="${mcpEndpoint}">http://localhost:8080/mcp/sse</code>
+                                            </div>
+                                            <!--<button class="btn-copy-endpoint" onclick="copyEndpoint()"
+                                                     title="Copy to clipboard">
+                                                <i class="bi bi-clipboard"></i>
+                                                <span class="ms-2">Copy</span>
+                                            </button>-->
                                         </div>
-                                        <button class="btn btn-sm btn-outline-info" onclick="copyEndpoint()">
-                                            <i class="bi bi-clipboard"></i> Copy
-                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -491,6 +471,118 @@
             .bg-warning-light { background-color: rgba(255, 193, 7, 0.1) !important; }
             .bg-success-light { background-color: rgba(25, 135, 84, 0.1) !important; }
             .bg-danger-light { background-color: rgba(220, 53, 69, 0.1) !important; }
+
+            /* Beautiful Dark Theme MCP Endpoint Card */
+            .mcp-endpoint-card {
+                background: linear-gradient(135deg, #1a1f2e 0%, #252d3d 100%);
+                border-radius: 12px;
+                border: 1px solid rgba(99, 179, 237, 0.2);
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3),
+                            0 0 20px rgba(99, 179, 237, 0.1);
+                overflow: hidden;
+                transition: all 0.3s ease;
+            }
+
+            .mcp-endpoint-card:hover {
+                border-color: rgba(99, 179, 237, 0.4);
+                box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4),
+                            0 0 30px rgba(99, 179, 237, 0.15);
+                transform: translateY(-2px);
+            }
+
+            .mcp-endpoint-header {
+                background: linear-gradient(90deg, rgba(99, 179, 237, 0.15) 0%, rgba(99, 179, 237, 0.05) 100%);
+                padding: 1rem 1.25rem;
+                border-bottom: 1px solid rgba(99, 179, 237, 0.2);
+                font-weight: 600;
+                font-size: 1rem;
+                color: #63b3ed;
+                letter-spacing: 0.5px;
+                display: flex;
+                align-items: center;
+            }
+
+            .mcp-endpoint-body {
+                padding: 1.5rem;
+            }
+
+            .endpoint-label {
+                font-size: 0.75rem;
+                font-weight: 500;
+                color: #a0aec0;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 0.75rem;
+                display: flex;
+                align-items: center;
+            }
+
+            .endpoint-url {
+                background: linear-gradient(135deg, rgba(99, 179, 237, 0.15) 0%, rgba(99, 179, 237, 0.05) 100%);
+                color: #63b3ed;
+                padding: 0.75rem 1rem;
+                border-radius: 8px;
+                font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Courier New', monospace;
+                font-size: 0.95rem;
+                font-weight: 600;
+                border: 1px solid rgba(99, 179, 237, 0.3);
+                letter-spacing: 0.5px;
+                display: block;
+                word-break: break-all;
+                transition: all 0.2s ease;
+            }
+
+            .endpoint-url:hover {
+                background: linear-gradient(135deg, rgba(99, 179, 237, 0.2) 0%, rgba(99, 179, 237, 0.1) 100%);
+                border-color: rgba(99, 179, 237, 0.4);
+                box-shadow: 0 0 15px rgba(99, 179, 237, 0.2);
+            }
+
+            .btn-copy-endpoint {
+                background: linear-gradient(135deg, rgba(72, 187, 120, 0.2) 0%, rgba(72, 187, 120, 0.1) 100%);
+                color: #68d391;
+                border: 1px solid rgba(72, 187, 120, 0.3);
+                padding: 0.6rem 1.25rem;
+                border-radius: 8px;
+                font-size: 0.9rem;
+                font-weight: 600;
+                transition: all 0.2s ease;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                white-space: nowrap;
+            }
+
+            .btn-copy-endpoint:hover {
+                background: linear-gradient(135deg, rgba(72, 187, 120, 0.3) 0%, rgba(72, 187, 120, 0.15) 100%);
+                border-color: rgba(72, 187, 120, 0.5);
+                box-shadow: 0 0 20px rgba(72, 187, 120, 0.3);
+                transform: translateY(-1px);
+                color: #68d391;
+            }
+
+            .btn-copy-endpoint.copied {
+                background: linear-gradient(135deg, rgba(72, 187, 120, 0.4) 0%, rgba(72, 187, 120, 0.2) 100%);
+                border-color: rgba(72, 187, 120, 0.6);
+                box-shadow: 0 0 25px rgba(72, 187, 120, 0.4);
+            }
+
+            /* Responsive adjustments */
+            @media (max-width: 768px) {
+                .mcp-endpoint-body {
+                    padding: 1rem;
+                }
+
+                .mcp-endpoint-body .d-flex {
+                    flex-direction: column;
+                    gap: 1rem;
+                }
+
+                .btn-copy-endpoint {
+                    width: 100%;
+                    justify-content: center;
+                }
+            }
 
             .welcome-banner {
                 padding: 1.5rem 0;
@@ -724,9 +816,26 @@
 
             // Copy MCP endpoint to clipboard
             function copyEndpoint() {
-                const endpoint = document.querySelector('code').textContent;
+                const endpointElement = document.getElementById('mcpEndpointUrl');
+                if (!endpointElement) {
+                    alert('Endpoint not found');
+                    return;
+                }
+                const endpoint = endpointElement.textContent;
                 navigator.clipboard.writeText(endpoint).then(() => {
-                    alert('MCP endpoint copied to clipboard!');
+                    // Show success feedback
+                    const button = event.target.closest('button');
+                    const originalHTML = button.innerHTML;
+                    button.innerHTML = '<i class="bi bi-check-circle-fill"></i><span class="ms-2">Copied!</span>';
+                    button.classList.add('copied');
+
+                    setTimeout(() => {
+                        button.innerHTML = originalHTML;
+                        button.classList.remove('copied');
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                    alert('Failed to copy endpoint to clipboard');
                 });
             }
         </script>

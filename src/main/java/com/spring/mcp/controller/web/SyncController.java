@@ -1,16 +1,20 @@
 package com.spring.mcp.controller.web;
 
+import com.spring.mcp.service.sync.CodeExamplesSyncService;
 import com.spring.mcp.service.sync.ComprehensiveSyncService;
 import com.spring.mcp.service.sync.ProjectSyncService;
 import com.spring.mcp.service.sync.SpringGenerationsSyncService;
+import com.spring.mcp.service.sync.SyncProgressTracker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
@@ -31,6 +35,14 @@ public class SyncController {
     private final ProjectSyncService projectSyncService;
     private final SpringGenerationsSyncService generationsSyncService;
     private final ComprehensiveSyncService comprehensiveSyncService;
+    private final CodeExamplesSyncService codeExamplesSyncService;
+    private final SyncProgressTracker progressTracker;
+
+    // Additional services for individual phase syncs
+    private final com.spring.mcp.service.sync.SpringProjectPageCrawlerService crawlerService;
+    private final com.spring.mcp.service.sync.ProjectRelationshipSyncService relationshipSyncService;
+    private final com.spring.mcp.service.sync.DocumentationSyncService documentationSyncService;
+    private final com.spring.mcp.repository.SpringProjectRepository springProjectRepository;
 
     /**
      * Show sync page with options.
@@ -154,5 +166,178 @@ public class SyncController {
         }
 
         return "redirect:/sync";
+    }
+
+    /**
+     * Trigger manual sync of code examples from Spring project pages.
+     *
+     * @param redirectAttributes for flash messages
+     * @return redirect to sync page
+     */
+    @PostMapping("/examples")
+    public String syncCodeExamples(RedirectAttributes redirectAttributes) {
+        log.info("Manual code examples sync triggered");
+
+        try {
+            CodeExamplesSyncService.SyncResult result = codeExamplesSyncService.syncCodeExamples();
+
+            if (result.isSuccess()) {
+                String message = String.format(
+                    "Code examples sync completed successfully! Created %d examples, updated %d (errors: %d)",
+                    result.getExamplesCreated(),
+                    result.getExamplesUpdated(),
+                    result.getErrorsEncountered()
+                );
+                redirectAttributes.addFlashAttribute("success", message);
+                log.info(message);
+            } else {
+                String errorMsg = "Code examples sync completed with errors: " + result.getErrorMessage();
+                redirectAttributes.addFlashAttribute("error", errorMsg);
+                log.error(errorMsg);
+            }
+        } catch (Exception e) {
+            String errorMsg = "Error during code examples sync: " + e.getMessage();
+            redirectAttributes.addFlashAttribute("error", errorMsg);
+            log.error(errorMsg, e);
+        }
+
+        return "redirect:/sync";
+    }
+
+    /**
+     * Trigger manual crawl of all Spring project pages.
+     *
+     * @param redirectAttributes for flash messages
+     * @return redirect to sync page
+     */
+    @PostMapping("/crawl-pages")
+    public String syncCrawlPages(RedirectAttributes redirectAttributes) {
+        log.info("Manual project pages crawl triggered");
+
+        try {
+            int projectsCrawled = 0;
+            int versionsUpdated = 0;
+            int errors = 0;
+
+            var projects = springProjectRepository.findAll();
+            for (var project : projects) {
+                try {
+                    var result = crawlerService.crawlProject(project.getSlug());
+                    projectsCrawled++;
+                    versionsUpdated += result.getVersionsUpdated();
+                    if (!result.isSuccess()) {
+                        errors++;
+                    }
+                } catch (Exception e) {
+                    errors++;
+                    log.error("Error crawling project: {}", project.getSlug(), e);
+                }
+            }
+
+            String message = String.format(
+                "Project pages crawl completed! Crawled %d projects, updated %d versions (errors: %d)",
+                projectsCrawled,
+                versionsUpdated,
+                errors
+            );
+            redirectAttributes.addFlashAttribute("success", message);
+            log.info(message);
+
+        } catch (Exception e) {
+            String errorMsg = "Error during project pages crawl: " + e.getMessage();
+            redirectAttributes.addFlashAttribute("error", errorMsg);
+            log.error(errorMsg, e);
+        }
+
+        return "redirect:/sync";
+    }
+
+    /**
+     * Trigger manual sync of project relationships.
+     *
+     * @param redirectAttributes for flash messages
+     * @return redirect to sync page
+     */
+    @PostMapping("/relationships")
+    public String syncRelationships(RedirectAttributes redirectAttributes) {
+        log.info("Manual project relationships sync triggered");
+
+        try {
+            com.spring.mcp.service.sync.ProjectRelationshipSyncService.SyncResult result =
+                relationshipSyncService.syncProjectRelationships();
+
+            if (result.isSuccess()) {
+                String message = String.format(
+                    "Project relationships sync completed successfully! Created %d relationships, skipped %d (errors: %d)",
+                    result.getRelationshipsCreated(),
+                    result.getRelationshipsSkipped(),
+                    result.getErrorsEncountered()
+                );
+                redirectAttributes.addFlashAttribute("success", message);
+                log.info(message);
+            } else {
+                String errorMsg = "Project relationships sync failed: " + result.getErrorMessage();
+                redirectAttributes.addFlashAttribute("error", errorMsg);
+                log.error(errorMsg);
+            }
+        } catch (Exception e) {
+            String errorMsg = "Error during project relationships sync: " + e.getMessage();
+            redirectAttributes.addFlashAttribute("error", errorMsg);
+            log.error(errorMsg, e);
+        }
+
+        return "redirect:/sync";
+    }
+
+    /**
+     * Trigger manual sync of documentation content.
+     *
+     * @param redirectAttributes for flash messages
+     * @return redirect to sync page
+     */
+    @PostMapping("/documentation")
+    public String syncDocumentation(RedirectAttributes redirectAttributes) {
+        log.info("Manual documentation sync triggered");
+
+        try {
+            com.spring.mcp.service.sync.DocumentationSyncService.SyncResult result =
+                documentationSyncService.syncAllDocumentation();
+
+            if (result.isSuccess()) {
+                String message = String.format(
+                    "Documentation sync completed successfully! Created %d links, updated %d (errors: %d)",
+                    result.getLinksCreated(),
+                    result.getLinksUpdated(),
+                    result.getErrorsEncountered()
+                );
+                redirectAttributes.addFlashAttribute("success", message);
+                log.info(message);
+            } else {
+                String errorMsg = "Documentation sync completed with errors: " + result.getErrorMessage();
+                redirectAttributes.addFlashAttribute("error", errorMsg);
+                log.error(errorMsg);
+            }
+        } catch (Exception e) {
+            String errorMsg = "Error during documentation sync: " + e.getMessage();
+            redirectAttributes.addFlashAttribute("error", errorMsg);
+            log.error(errorMsg, e);
+        }
+
+        return "redirect:/sync";
+    }
+
+    /**
+     * SSE endpoint for streaming sync progress to the UI.
+     *
+     * @return SSE emitter for progress updates
+     */
+    @GetMapping(value = "/progress", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamSyncProgress() {
+        log.debug("New SSE connection for sync progress");
+
+        SseEmitter emitter = new SseEmitter(3600000L); // 1 hour timeout
+        progressTracker.registerEmitter(emitter);
+
+        return emitter;
     }
 }

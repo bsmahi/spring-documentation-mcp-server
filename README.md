@@ -17,38 +17,48 @@ This MCP server enables AI assistants (like Claude) to search, browse, and retri
 <table>
   <tr>
     <td width="50%">
+      <img src="assets/screen-00.png" alt="Login" />
+      <p align="center"><b>Login</b> - Secure authentication with Spring Security</p>
+    </td>
+    <td width="50%">
       <img src="assets/screen-01.png" alt="Dashboard" />
       <p align="center"><b>Dashboard</b> - Overview statistics and quick actions</p>
     </td>
+  </tr>
+  <tr>
     <td width="50%">
       <img src="assets/screen-02.png" alt="Spring Boot" />
       <p align="center"><b>Spring Boot</b> - Spring Boot project management</p>
     </td>
-  </tr>
-  <tr>
     <td width="50%">
       <img src="assets/screen-03.png" alt="Projects" />
       <p align="center"><b>Projects</b> - All Spring projects overview</p>
     </td>
+  </tr>
+  <tr>
     <td width="50%">
       <img src="assets/screen-04.png" alt="Project Details" />
       <p align="center"><b>Project Details</b> - Spring Batch project details</p>
     </td>
-  </tr>
-  <tr>
     <td width="50%">
       <img src="assets/screen-05.png" alt="Versions" />
       <p align="center"><b>Versions</b> - Version management and tracking</p>
     </td>
+  </tr>
+  <tr>
     <td width="50%">
       <img src="assets/screen-06.png" alt="Documentation" />
       <p align="center"><b>Documentation</b> - Full-text search and browse</p>
+    </td>
+    <td width="50%">
+      <img src="assets/screen-10.png" alt="Code Examples" />
+      <p align="center"><b>Code Examples</b> - Searchable code snippets library with language and tag filters</p>
     </td>
   </tr>
   <tr>
     <td width="50%">
       <img src="assets/screen-07.png" alt="Settings" />
-      <p align="center"><b>Settings</b> - Application configuration and sync controls</p>
+      <p align="center"><b>Settings</b> - Application configuration, scheduler, and sync controls</p>
     </td>
     <td width="50%">
       <img src="assets/screen-08.png" alt="Documentation Markdown Expansion" />
@@ -398,63 +408,101 @@ mcp:
 spring-mcp-server/
 ├── src/main/java/com/spring/mcp/
 │   ├── config/                    # Spring configuration
+│   │   ├── CacheConfig.java       # Caching configuration
+│   │   ├── McpHealthIndicator.java # Health check for MCP server
 │   │   ├── SecurityConfig.java    # Security & authentication
-│   │   └── WebConfig.java         # Web MVC configuration
+│   │   ├── StartupSyncRunner.java # Startup sync initialization
+│   │   ├── WebClientConfig.java   # WebClient for HTTP requests
+│   │   └── WebMvcConfig.java      # Web MVC configuration
 │   ├── controller/
+│   │   ├── advice/                # Controller advice
+│   │   │   └── GlobalModelAttributesAdvice.java # Global model attributes
 │   │   ├── api/                   # REST API controllers
 │   │   │   ├── DocumentationApiController.java
 │   │   │   └── McpTestController.java
 │   │   └── web/                   # Web UI controllers
+│   │       ├── BootstrapController.java
 │   │       ├── DashboardController.java
-│   │       ├── ProjectsController.java
-│   │       ├── VersionsController.java
 │   │       ├── DocumentationController.java
 │   │       ├── ExamplesController.java
+│   │       ├── ProjectsController.java
+│   │       ├── SettingsController.java
+│   │       ├── SpringBootController.java
+│   │       ├── SyncController.java
 │   │       ├── UsersController.java
-│   │       └── SettingsController.java
+│   │       └── VersionsController.java
 │   ├── model/
 │   │   ├── entity/                # JPA entities
-│   │   │   ├── SpringProject.java
-│   │   │   ├── ProjectVersion.java
-│   │   │   ├── DocumentationType.java
-│   │   │   ├── DocumentationLink.java
-│   │   │   ├── DocumentationContent.java
+│   │   │   ├── ApiKey.java
 │   │   │   ├── CodeExample.java
-│   │   │   ├── User.java
-│   │   │   └── Settings.java
+│   │   │   ├── DocumentationContent.java
+│   │   │   ├── DocumentationLink.java
+│   │   │   ├── DocumentationType.java
+│   │   │   ├── ExternalDoc.java
+│   │   │   ├── McpConnection.java
+│   │   │   ├── McpRequest.java
+│   │   │   ├── ProjectRelationship.java
+│   │   │   ├── ProjectVersion.java
+│   │   │   ├── SchedulerSettings.java
+│   │   │   ├── Settings.java
+│   │   │   ├── SpringBootCompatibility.java
+│   │   │   ├── SpringBootVersion.java
+│   │   │   ├── SpringProject.java
+│   │   │   └── User.java
 │   │   └── dto/                   # Data Transfer Objects
 │   ├── repository/                # Spring Data JPA repositories
-│   │   ├── SpringProjectRepository.java
-│   │   ├── ProjectVersionRepository.java
-│   │   ├── DocumentationLinkRepository.java
-│   │   ├── DocumentationContentRepository.java
+│   │   ├── ApiKeyRepository.java
 │   │   ├── CodeExampleRepository.java
+│   │   ├── DocumentationContentRepository.java
+│   │   ├── DocumentationLinkRepository.java
+│   │   ├── DocumentationTypeRepository.java
+│   │   ├── ExternalDocRepository.java
+│   │   ├── McpConnectionRepository.java
+│   │   ├── McpRequestRepository.java
+│   │   ├── ProjectRelationshipRepository.java
+│   │   ├── ProjectVersionRepository.java
+│   │   ├── SchedulerSettingsRepository.java
+│   │   ├── SpringBootCompatibilityRepository.java
+│   │   ├── SpringBootVersionRepository.java
+│   │   ├── SpringProjectRepository.java
 │   │   └── UserRepository.java
 │   ├── service/
 │   │   ├── tools/
 │   │   │   └── SpringDocumentationTools.java  # MCP @Tool methods
 │   │   ├── documentation/
-│   │   │   ├── DocumentationService.java
-│   │   │   └── DocumentationFetchService.java
+│   │   │   ├── DocumentationFetchService.java
+│   │   │   └── DocumentationService.java
+│   │   ├── indexing/              # Content indexing services
+│   │   │   ├── CodeExampleExtractor.java
+│   │   │   └── DocumentationIndexer.java
+│   │   ├── mcp/
+│   │   │   └── McpRequestLoggerService.java
+│   │   ├── scheduler/             # Scheduler services
+│   │   │   └── SchedulerService.java
 │   │   ├── sync/                  # Documentation sync services
 │   │   │   ├── ComprehensiveSyncService.java
 │   │   │   ├── DocumentationSyncService.java
 │   │   │   ├── ProjectSyncService.java
 │   │   │   ├── SpringBootVersionSyncService.java
-│   │   │   ├── SpringProjectPageCrawlerService.java
-│   │   │   └── SpringGenerationsSyncService.java
+│   │   │   ├── SpringGenerationsSyncService.java
+│   │   │   └── SpringProjectPageCrawlerService.java
 │   │   ├── version/
 │   │   │   └── VersionDetectionService.java
 │   │   ├── bootstrap/
 │   │   │   └── DocumentationBootstrapService.java
-│   │   └── mcp/
-│   │       └── McpRequestLoggerService.java
+│   │   ├── ApiKeyService.java
+│   │   ├── CodeExampleService.java
+│   │   ├── ExternalDocService.java
+│   │   ├── ProjectRelationshipService.java
+│   │   ├── ProjectService.java
+│   │   ├── SettingsService.java
+│   │   ├── SpringBootCompatibilityService.java
+│   │   ├── SpringBootService.java
+│   │   └── UserService.java
 │   └── SpringMcpServerApplication.java
 ├── src/main/resources/
 │   ├── db/migration/              # Flyway database migrations
-│   │   ├── V1__consolidated_initial_schema.sql
-│   │   ├── V2__update_user_roles.sql
-│   │   └── V3__create_settings_table.sql
+│   │   └── V1__init.sql           # Consolidated initial schema
 │   ├── templates/                 # Thymeleaf templates
 │   │   ├── layouts/               # Page layouts
 │   │   ├── fragments/             # Reusable fragments
@@ -586,13 +634,54 @@ Search features:
 
 ### Code Examples
 
-Manage code snippets:
-- Title, description, code snippet
-- Language tagging (Java, Kotlin, Groovy)
-- Category organization
-- Tags for discoverability
-- Version association
-- Source URL tracking
+The Code Examples feature provides a searchable repository of Spring code snippets that can be accessed both through the MCP server and the web UI.
+
+**Features**:
+- **Rich Code Snippets**: Store complete code examples with syntax highlighting
+- **Title & Description**: Each example has a descriptive title and detailed explanation
+- **Language Support**: Tag examples with programming language (Java, Kotlin, Groovy, XML, YAML, etc.)
+- **Category Organization**: Organize examples into logical categories (Configuration, REST API, Data Access, Security, etc.)
+- **Tag System**: Multiple tags per example for enhanced discoverability
+- **Version Association**: Link examples to specific Spring project versions
+- **Source Tracking**: Reference original source URLs for attribution
+- **Full-Text Search**: Search across titles, descriptions, and code content
+- **MCP Integration**: Available via `getCodeExamples` tool for AI assistants
+
+**Use Cases**:
+- Quick reference for common Spring patterns
+- Learning Spring best practices
+- Sharing code snippets with team members
+- Building a knowledge base of working examples
+- AI-assisted code generation with real examples
+
+### Scheduler Configuration
+
+The built-in scheduler allows you to automate documentation synchronization on a configurable schedule.
+
+**Configuration (Settings Page)**:
+- **Enable/Disable Sync**: Toggle automatic synchronization on or off
+- **Sync Time**: Set the daily sync time in 24-hour or 12-hour format (e.g., "03:00" or "3:00 AM")
+- **Time Format**: Choose between 24-hour (military) or 12-hour (AM/PM) time display
+- **Next Sync Run**: View when the next scheduled synchronization will occur
+- **Last Sync Run**: Track when the last successful sync completed
+- **Manual Trigger**: Run synchronization immediately via "Sync Now" button
+
+**How It Works**:
+1. The scheduler runs a comprehensive documentation sync at the configured time
+2. Synchronization includes:
+   - Spring project metadata updates
+   - New version detection
+   - Documentation link discovery
+   - Spring Boot version compatibility mapping
+   - Spring Generations tracking
+3. All sync operations are logged for troubleshooting
+4. Failed syncs are reported in the application logs
+
+**Best Practices**:
+- Schedule syncs during low-traffic periods (e.g., 2-4 AM)
+- Allow sufficient time between syncs (daily is recommended)
+- Monitor logs after scheduling changes to ensure proper operation
+- Use manual sync for immediate updates when needed
 
 ## Troubleshooting
 
@@ -692,7 +781,7 @@ Areas for contribution:
 
 ## License
 
-This project is part of the Spring MCP Server initiative.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Resources
 

@@ -1,6 +1,7 @@
 package com.spring.mcp.controller.web;
 
 import com.spring.mcp.repository.*;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -58,10 +59,22 @@ public class DashboardController {
      */
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public String showDashboard(Model model) {
+    public String showDashboard(Model model, HttpServletRequest request) {
         log.debug("Loading dashboard statistics");
 
         try {
+            // Build MCP endpoint URL
+            String scheme = request.getScheme();
+            String serverName = request.getServerName();
+            int serverPort = request.getServerPort();
+            String contextPath = request.getContextPath();
+
+            String mcpEndpoint = scheme + "://" + serverName +
+                (serverPort == 80 || serverPort == 443 ? "" : ":" + serverPort) +
+                contextPath + "/mcp/sse";
+
+            model.addAttribute("mcpEndpoint", mcpEndpoint);
+
             // Gather statistics from repositories
             long projectCount = springProjectRepository.count();
             long versionCount = projectVersionRepository.count();
@@ -88,21 +101,18 @@ public class DashboardController {
                 : 0.0;
             model.addAttribute("activePercentage", String.format("%.1f", activePercentage));
 
-            // Get recent items (last 5)
-            var recentProjects = springProjectRepository.findAll(
-                PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"))
-            );
-            model.addAttribute("recentProjects", recentProjects.getContent());
+            // Recent activity statistics (last 30 days)
+            // Recent Projects: Count of distinct projects with releases in last 30 days
+            long recentProjectsCount = projectVersionRepository.countDistinctProjectsWithRecentReleases(30);
+            model.addAttribute("recentProjectsCount", recentProjectsCount);
 
-            var recentVersions = projectVersionRepository.findAll(
-                PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"))
-            );
-            model.addAttribute("recentVersions", recentVersions.getContent());
+            // Recent Docs: Count of documentation links where project versions were updated in last 30 days
+            long recentDocsCount = documentationLinkRepository.countWithRecentlyUpdatedVersions(30);
+            model.addAttribute("recentDocsCount", recentDocsCount);
 
-            var recentDocumentation = documentationLinkRepository.findAll(
-                PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"))
-            );
-            model.addAttribute("recentDocumentation", recentDocumentation.getContent());
+            // Recent Activity: Top 5 projects with newest release dates
+            var recentActivityProjects = projectVersionRepository.findTopByReleaseDateDesc(PageRequest.of(0, 5));
+            model.addAttribute("recentActivityProjects", recentActivityProjects);
 
             // Set active page for sidebar navigation
             model.addAttribute("activePage", "dashboard");
