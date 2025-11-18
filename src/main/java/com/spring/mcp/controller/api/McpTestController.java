@@ -29,7 +29,7 @@ public class McpTestController {
             "serverName", "Spring Documentation MCP Server",
             "version", "1.0.0",
             "status", "running",
-            "endpoint", "/mcp/sse",
+            "endpoint", "/mcp/spring/sse",
             "protocol", "SSE (Server-Sent Events)",
             "springAiVersion", "1.0.3",
             "autoConfigured", true,

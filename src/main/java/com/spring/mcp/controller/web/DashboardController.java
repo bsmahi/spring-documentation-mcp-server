@@ -71,7 +71,7 @@ public class DashboardController {
 
             String mcpEndpoint = scheme + "://" + serverName +
                 (serverPort == 80 || serverPort == 443 ? "" : ":" + serverPort) +
-                contextPath + "/mcp/sse";
+                contextPath + "/mcp/spring/sse";
 
             model.addAttribute("mcpEndpoint", mcpEndpoint);
 
