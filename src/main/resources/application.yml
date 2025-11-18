@@ -52,6 +52,40 @@ spring:
       password: ${ADMIN_PASSWORD:admin}
       roles: ADMIN
 
+  # Spring AI MCP Server Configuration
+  ai:
+    mcp:
+      server:
+        name: "spring-documentation-server"
+        type: "sync"
+        version: "1.0.0"
+        instructions: |
+          Spring Documentation MCP Server provides comprehensive access to Spring ecosystem documentation.
+
+          Available tools:
+          - searchSpringDocs: Search across all Spring documentation
+          - getSpringVersions: List available versions for a Spring project
+          - listSpringProjects: List all available Spring projects
+          - getDocumentationByVersion: Get all documentation for a specific version
+          - getCodeExamples: Search for code examples with filters
+          - listSpringBootVersions: List Spring Boot versions
+          - getLatestSpringBootVersion: Get latest patch version for major.minor
+          - filterSpringBootVersionsBySupport: Filter by support status
+          - listProjectsBySpringBootVersion: List compatible projects
+          - findProjectsByUseCase: Search projects by use case
+
+          SSE endpoint: /mcp/spring/sse
+          Message endpoint: /mcp/spring/messages
+
+        sse-endpoint: /mcp/spring/sse
+        sse-message-endpoint: /mcp/spring/messages
+
+        capabilities:
+          tool: true
+          completion: false
+          prompt: false
+          resource: false
+
 server:
   port: ${SERVER_PORT:8080}
   error:

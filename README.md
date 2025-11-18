@@ -65,18 +65,41 @@ This MCP server enables AI assistants (like Claude) to search, browse, and retri
       <p align="center"><b>Documentation Markdown</b> - Expanded Spring Batch documentation content</p>
     </td>
   </tr>
+  <tr>
+    <td width="50%">
+      <img src="assets/screen-12.png" alt="MCP Inspector Connection" />
+      <p align="center"><b>MCP Inspector</b> - MCP Inspector connected to Spring Documentation MCP Server</p>
+    </td>
+    <td width="50%">
+      <img src="assets/screen-13.png" alt="Claude Code Console" />
+      <p align="center"><b>Claude Code Integration</b> - Claude Code console listing all Spring Boot versions via MCP</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="assets/screen-14.png" alt="Spring AI Version Query" />
+      <p align="center"><b>Spring AI Compatibility</b> - Claude using MCP to find compatible Spring AI version for Spring Boot 3.5.7</p>
+    </td>
+    <td width="50%">
+    </td>
+  </tr>
 </table>
 
 ## Current Status
 
 ### ✅ Fully Implemented Features
 
-#### MCP Tools (5 tools available)
+#### MCP Tools (10 tools available)
 1. **searchSpringDocs** - Full-text search across all Spring documentation with filters
 2. **getSpringVersions** - List available versions for any Spring project
 3. **listSpringProjects** - Browse all available Spring projects
 4. **getDocumentationByVersion** - Get all documentation for a specific version
 5. **getCodeExamples** - Search code examples with language/project/version filters
+6. **listSpringBootVersions** - List Spring Boot versions with state filtering
+7. **getLatestSpringBootVersion** - Get latest patch for major.minor version
+8. **filterSpringBootVersionsBySupport** - Filter by support status (OSS/Enterprise)
+9. **listProjectsBySpringBootVersion** - List compatible projects for Spring Boot version
+10. **findProjectsByUseCase** - Search projects by use case keywords
 
 #### Web Management UI
 - **Dashboard** - Overview statistics and recent updates
@@ -169,7 +192,8 @@ Or using Gradle:
 
 - **Web UI**: http://localhost:8080
 - **Login**: Username: `admin`, Password: `admin`
-- **MCP Endpoint**: http://localhost:8080/mcp (SSE endpoint auto-configured by Spring AI)
+- **MCP SSE Endpoint**: http://localhost:8080/mcp/spring/sse
+- **MCP Message Endpoint**: http://localhost:8080/mcp/spring/messages
 
 ## API Key Authentication
 
@@ -203,46 +227,107 @@ API keys can be provided in three ways (in order of preference):
 
 1. **X-API-Key Header** (Recommended):
    ```bash
-   curl -H "X-API-Key: smcp_your_key_here" http://localhost:8080/mcp/sse
+   curl -H "X-API-Key: smcp_your_key_here" http://localhost:8080/mcp/spring/sse
    ```
 
 2. **Authorization Bearer Header**:
    ```bash
-   curl -H "Authorization: Bearer smcp_your_key_here" http://localhost:8080/mcp/sse
+   curl -H "Authorization: Bearer smcp_your_key_here" http://localhost:8080/mcp/spring/sse
    ```
 
 3. **Query Parameter** (Testing only - less secure):
    ```bash
-   curl "http://localhost:8080/mcp/sse?api_key=smcp_your_key_here"
+   curl "http://localhost:8080/mcp/spring/sse?api_key=smcp_your_key_here"
    ```
 
-## Using the MCP Server with Claude Code
+## Testing the MCP Server
 
-### Configuration
+### Option 1: MCP Inspector (Recommended for Testing)
 
-Add to your Claude Desktop or Claude Code MCP configuration:
+MCP Inspector is an excellent tool for testing and debugging MCP servers. It provides a visual interface to test all MCP capabilities.
+
+#### Install and Run MCP Inspector
+
+```bash
+npx @modelcontextprotocol/inspector
+```
+
+This will start the MCP Inspector and output something like:
+
+```
+Starting MCP inspector...
+Proxy server listening on localhost:6277
+Session token: 3c672c3389d66786f32ffe2f90d6d2116634bef316a09198fb6e933a5eeefe2b
+
+MCP Inspector is up and running at:
+http://localhost:6274/?MCP_PROXY_AUTH_TOKEN=3c672c3389d66786f32ffe2f90d6d2116634bef316a09198fb6e933a5eeefe2b
+```
+
+#### Configure MCP Inspector
+
+1. Open the MCP Inspector URL in your browser
+2. Select **"SSE"** as the Transport Type
+3. Enter the **URL**: `http://localhost:8080/mcp/spring/sse`
+4. Add **Headers** (click "Add Header"):
+   - **Header Name**: `X-API-Key`
+   - **Header Value**: `smcp_your_api_key_here` (your actual API key)
+5. Click **"Connect"**
+
+Once connected, you can:
+- **List Tools**: View all 10 available MCP tools
+- **Test Tools**: Execute tools with parameters and see responses
+- **View Logs**: See real-time communication between client and server
+- **Debug Issues**: Inspect request/response payloads
+
+#### Example: Testing searchSpringDocs Tool
+
+In MCP Inspector:
+1. Navigate to the **"Tools"** tab
+2. Select **"searchSpringDocs"** tool
+3. Fill in parameters:
+   ```json
+   {
+     "query": "autoconfiguration",
+     "project": "spring-boot",
+     "version": "3.5.7"
+   }
+   ```
+4. Click **"Execute"**
+5. View the typed response with all documentation results
+
+### Option 2: Claude Desktop/Claude Code
+
+Add to your Claude Desktop or Claude Code MCP configuration (`.mcp.json`):
 
 ```json
 {
   "mcpServers": {
-    "spring-docs": {
-      "command": "bash",
-      "args": [
-        "-c",
-        "curl -N -H 'X-API-Key: smcp_your_api_key_here' http://localhost:8080/mcp/sse"
-      ]
+    "spring-documentation": {
+      "type": "sse",
+      "url": "http://localhost:8080/mcp/spring/sse",
+      "headers": {
+        "X-API-Key": "YOUR_API_KEY_HERE"
+      }
     }
   }
 }
 ```
 
-**Note**: Replace `smcp_your_api_key_here` with your actual API key from the Settings page.
+**Configuration Steps**:
+1. Create or edit `.mcp.json` in your project root or Claude Code configuration directory
+2. Replace `YOUR_API_KEY_HERE` with your actual API key from the Settings page
+3. Restart Claude Code to load the new MCP server
+4. The Spring Documentation tools will be available in your Claude Code session
+
+**Note**: The API key format is `smcp_<random-string>`. Get your key from the Web UI Settings page.
 
 ### Available MCP Tools
 
-Once connected, the following tools are available to AI assistants:
+Once connected, the following **10 tools** are available to AI assistants:
 
-#### 1. searchSpringDocs
+#### Documentation Tools
+
+##### 1. searchSpringDocs
 Search across all Spring documentation with optional filters.
 
 **Parameters**:
@@ -260,7 +345,7 @@ Search across all Spring documentation with optional filters.
 }
 ```
 
-#### 2. getSpringVersions
+##### 2. getSpringVersions
 List all available versions for a Spring project.
 
 **Parameters**:
@@ -273,12 +358,12 @@ List all available versions for a Spring project.
 }
 ```
 
-#### 3. listSpringProjects
+##### 3. listSpringProjects
 List all available Spring projects.
 
 **No parameters required**.
 
-#### 4. getDocumentationByVersion
+##### 4. getDocumentationByVersion
 Get all documentation for a specific project version.
 
 **Parameters**:
@@ -293,7 +378,7 @@ Get all documentation for a specific project version.
 }
 ```
 
-#### 5. getCodeExamples
+##### 5. getCodeExamples
 Search code examples with filters.
 
 **Parameters**:
@@ -310,6 +395,81 @@ Search code examples with filters.
   "project": "spring-boot",
   "language": "java",
   "limit": 20
+}
+```
+
+#### Spring Boot Version Tools
+
+##### 6. listSpringBootVersions
+List all Spring Boot versions with optional filtering.
+
+**Parameters**:
+- `state` (optional): Filter by state ('GA', 'RC', 'SNAPSHOT', 'MILESTONE')
+- `limit` (optional): Max results (default: 20, max: 100)
+
+**Example**:
+```json
+{
+  "state": "GA",
+  "limit": 10
+}
+```
+
+##### 7. getLatestSpringBootVersion
+Get the latest patch version for a specific Spring Boot major.minor version.
+
+**Parameters**:
+- `majorVersion` (required): Major version (e.g., 3)
+- `minorVersion` (required): Minor version (e.g., 5)
+
+**Example**:
+```json
+{
+  "majorVersion": 3,
+  "minorVersion": 5
+}
+```
+
+##### 8. filterSpringBootVersionsBySupport
+Filter Spring Boot versions by support status.
+
+**Parameters**:
+- `supportActive` (optional): true for supported, false for end-of-life
+- `limit` (optional): Max results (default: 20, max: 100)
+
+**Example**:
+```json
+{
+  "supportActive": true,
+  "limit": 20
+}
+```
+
+##### 9. listProjectsBySpringBootVersion
+List all Spring projects compatible with a specific Spring Boot version.
+
+**Parameters**:
+- `majorVersion` (required): Spring Boot major version
+- `minorVersion` (required): Spring Boot minor version
+
+**Example**:
+```json
+{
+  "majorVersion": 3,
+  "minorVersion": 5
+}
+```
+
+##### 10. findProjectsByUseCase
+Search for Spring projects by use case keywords.
+
+**Parameters**:
+- `useCase` (required): Use case keyword (e.g., 'data access', 'security', 'messaging')
+
+**Example**:
+```json
+{
+  "useCase": "security"
 }
 ```
 
@@ -341,11 +501,26 @@ export BOOTSTRAP_DOCS=false  # Set to true to load sample data on startup
 Key configuration in `src/main/resources/application.yml`:
 
 ```yaml
-mcp:
-  server:
-    name: "Spring Documentation MCP Server"
-    version: "1.0.0"
+spring:
+  ai:
+    mcp:
+      server:
+        name: "spring-documentation-server"
+        type: "sync"
+        version: "1.0.0"
+        instructions: |
+          Spring Documentation MCP Server provides comprehensive access...
 
+        sse-endpoint: /mcp/spring/sse
+        sse-message-endpoint: /mcp/spring/messages
+
+        capabilities:
+          tool: true
+          completion: false
+          prompt: false
+          resource: false
+
+mcp:
   documentation:
     fetch:
       enabled: true
@@ -409,6 +584,7 @@ spring-mcp-server/
 ├── src/main/java/com/spring/mcp/
 │   ├── config/                    # Spring configuration
 │   │   ├── CacheConfig.java       # Caching configuration
+│   │   ├── McpConfig.java         # MCP server tool registration
 │   │   ├── McpHealthIndicator.java # Health check for MCP server
 │   │   ├── SecurityConfig.java    # Security & authentication
 │   │   ├── StartupSyncRunner.java # Startup sync initialization
@@ -450,6 +626,18 @@ spring-mcp-server/
 │   │   │   ├── SpringProject.java
 │   │   │   └── User.java
 │   │   └── dto/                   # Data Transfer Objects
+│   │       ├── mcp/               # MCP response DTOs
+│   │       │   ├── SearchDocsResponse.java
+│   │       │   ├── VersionsResponse.java
+│   │       │   ├── ProjectsListResponse.java
+│   │       │   ├── DocumentationByVersionResponse.java
+│   │       │   ├── CodeExamplesResponse.java
+│   │       │   ├── SpringBootVersionsResponse.java
+│   │       │   ├── LatestSpringBootVersionResponse.java
+│   │       │   ├── FilteredSpringBootVersionsResponse.java
+│   │       │   ├── ProjectsBySpringBootVersionResponse.java
+│   │       │   └── ProjectsByUseCaseResponse.java
+│   │       └── ... (other DTOs)
 │   ├── repository/                # Spring Data JPA repositories
 │   │   ├── ApiKeyRepository.java
 │   │   ├── CodeExampleRepository.java
@@ -598,8 +786,9 @@ Migrations are applied automatically on startup. Manual migration:
 - `POST /api/sync/versions` - Sync versions
 
 ### MCP Protocol
-- **SSE Endpoint**: `/mcp` (auto-configured by Spring AI)
-- **Authentication**: Basic Auth (username/password)
+- **SSE Endpoint**: `/mcp/spring/sse` (connection endpoint)
+- **Message Endpoint**: `/mcp/spring/messages` (messaging endpoint)
+- **Authentication**: API Key (X-API-Key header, Bearer token, or query parameter)
 
 ### Health & Monitoring
 - `GET /actuator/health` - Health check
@@ -725,9 +914,32 @@ lsof -ti :8080 | xargs kill -9
 
 ### MCP Connection Issues
 
-1. Verify application is running: `curl http://localhost:8080/actuator/health`
-2. Check authentication: `curl -u admin:admin http://localhost:8080/mcp`
-3. Review logs: `tail -f logs/spring-mcp-server.log`
+1. **Verify application is running**:
+   ```bash
+   curl http://localhost:8080/actuator/health
+   ```
+
+2. **Check MCP endpoint with API key**:
+   ```bash
+   curl -H "X-API-Key: your_api_key" http://localhost:8080/mcp/spring/sse
+   ```
+
+3. **Test with MCP Inspector**:
+   ```bash
+   npx @modelcontextprotocol/inspector
+   ```
+   Then configure with URL: `http://localhost:8080/mcp/spring/sse` and your API key header.
+
+4. **Review application logs**:
+   ```bash
+   tail -f logs/spring-mcp-server.log
+   ```
+
+5. **Check registered tools**:
+   ```bash
+   grep "Registered tools" logs/spring-mcp-server.log
+   # Should show: Registered tools: 10
+   ```
 
 ## Roadmap
 
@@ -736,17 +948,20 @@ lsof -ti :8080 | xargs kill -9
 - [x] PostgreSQL database with Docker Compose
 - [x] Flyway migrations
 - [x] Entity models and repositories
-- [x] Spring Security with Basic Auth
+- [x] Spring Security with API Key authentication
 - [x] Thymeleaf UI with Bootstrap 5
-- [x] MCP Server with Spring AI
-- [x] 5 MCP tools implemented
+- [x] MCP Server with Spring AI (SSE-based)
+- [x] 10 MCP tools implemented with typed DTOs
 - [x] Full-text search with PostgreSQL
 - [x] Documentation sync services
 - [x] Version detection and tracking
 - [x] Web management UI (all pages)
 - [x] User management
 - [x] Settings management
+- [x] API Key management with BCrypt encryption
 - [x] Code examples repository
+- [x] Spring Boot version compatibility tracking
+- [x] Scheduler configuration for automated syncs
 
 ### In Progress 🚧
 - [ ] Comprehensive documentation coverage for all Spring projects

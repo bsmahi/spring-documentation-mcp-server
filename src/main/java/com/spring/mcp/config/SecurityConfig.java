@@ -34,7 +34,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             // Add API Key authentication filter before UsernamePasswordAuthenticationFilter
-            // This filter only processes /mcp/** endpoints
+            // This filter processes /mcp/**, /sse, and /message endpoints
             .addFilterBefore(apiKeyAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
 
             .authorizeHttpRequests(auth -> auth
@@ -42,7 +42,11 @@ public class SecurityConfig {
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                 .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
 
-                // MCP endpoints - require API key authentication (handled by ApiKeyAuthenticationFilter)
+                // Spring AI MCP SSE endpoints - permitAll but protected by ApiKeyAuthenticationFilter
+                .requestMatchers("/sse", "/message").permitAll()
+                .requestMatchers("/mcp/spring/sse", "/mcp/spring/messages").permitAll()
+
+                // Custom MCP endpoints - require API key authentication (handled by ApiKeyAuthenticationFilter)
                 .requestMatchers("/mcp/**").authenticated()
 
                 // API endpoints - require authentication
@@ -71,7 +75,8 @@ public class SecurityConfig {
             .httpBasic(withDefaults()) // Keep Basic Auth for backward compatibility
             .csrf(csrf -> csrf
                 // Disable CSRF for MCP endpoints as they use API key authentication
-                .ignoringRequestMatchers("/mcp/**", "/api/mcp/**", "/sync/**", "/settings/api-keys/**")
+                .ignoringRequestMatchers("/mcp/**", "/sse", "/message", "/mcp/spring/sse", "/mcp/spring/messages",
+                    "/api/mcp/**", "/sync/**", "/settings/api-keys/**")
             )
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)

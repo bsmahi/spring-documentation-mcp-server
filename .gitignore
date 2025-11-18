@@ -57,3 +57,6 @@ CLAUDE.md
 docs/
 .vols/
 .fastRequest/
+/mcp.md
+.mcp.json
+

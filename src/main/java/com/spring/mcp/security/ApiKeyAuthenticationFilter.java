@@ -48,8 +48,8 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
         String requestUri = request.getRequestURI();
 
-        // Only process MCP endpoints
-        if (!requestUri.startsWith("/mcp")) {
+        // Only process MCP endpoints (both /mcp/** and default Spring AI /sse)
+        if (!requestUri.startsWith("/mcp") && !requestUri.startsWith("/sse")) {
             filterChain.doFilter(request, response);
             return;
         }
